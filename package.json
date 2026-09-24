@@ -1,0 +1,16 @@
+{
+  "name": "singasmoke-data",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Regenerates the data bundled in the SingaSmoke iPhone app from open sources.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "data": "node scripts/fetch.mjs && node scripts/geocode.mjs && node scripts/build.mjs && node scripts/check.mjs",
+    "data:fetch": "node scripts/fetch.mjs",
+    "data:geocode": "node scripts/geocode.mjs",
+    "data:build": "node scripts/build.mjs",
+    "data:check": "node scripts/check.mjs"
+  }
+}
