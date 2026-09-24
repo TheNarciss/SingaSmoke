@@ -50,16 +50,17 @@ struct GuidanceView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 instructionCard
                 Spacer(minLength: 0)
                 HStack {
                     Spacer()
-                    MapButton(symbol: "location.north.line.fill", label: "Centre on my location") { recenter += 1 }
+                    FloatingButton(symbol: "location.north.line.fill", label: "Centre on my location") { recenter += 1 }
                 }
-                bottomBar
+                bottomCard
             }
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
         }
         .task { await computeRoute(force: true) }
         .onChange(of: model.location.fix) { _, _ in
@@ -84,79 +85,150 @@ struct GuidanceView: View {
 
     // MARK: Views
 
+    /// The next manoeuvre, big and high-contrast: readable at arm's length, in the sun.
     private var instructionCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if arrived {
-                Label("You have arrived", systemImage: "flag.checkered")
-                    .font(.title2.weight(.bold))
-                Text(target.detail ?? target.name)
-                    .font(.body)
-                Text(Legal.signage)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else if user == nil {
-                Label("Waiting for your location…", systemImage: "location.magnifyingglass")
-                    .font(.headline)
-            } else if let progress {
-                Text(progress.nextInstruction ?? "Continue to the destination")
-                    .font(.title3.weight(.bold))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("in \(Format.distance(progress.distanceToNext))")
-                    .font(.headline)
-                    .foregroundStyle(.blue)
-                Text("\(Format.distance(progress.remaining)) · \(Format.duration(progress.remaining / WalkingDistance.walkingSpeed)) to go")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else if computing {
-                Label("Calculating the route…", systemImage: "hourglass")
-                    .font(.headline)
-            } else if let straightLine, let user {
-                Label("No route available. No network?", systemImage: "wifi.slash")
-                    .font(.headline)
-                Text("The destination is \(Format.distance(straightLine)) away as the crow flies, \(CompassDirection(bearing: Geo.bearing(from: user, to: target.coordinate)).towards).")
-                    .font(.subheadline)
-                Button("Try again") { Task { await computeRoute(force: true) } }
-                    .buttonStyle(.bordered)
+        HStack(alignment: .center, spacing: 14) {
+            instructionIcon
+            VStack(alignment: .leading, spacing: 3) {
+                instructionText
             }
+            Spacer(minLength: 0)
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .foregroundStyle(.white)
+        .background(arrived ? Brand.allowed : Color(white: 0.09), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .shadow(color: .black.opacity(0.25), radius: 16, y: 6)
+        .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .combine)
+        .animation(.snappy, value: arrived)
     }
 
-    private var bottomBar: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(target.name)
-                    .font(.headline)
-                if let detail = target.detail {
-                    Text(detail)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+    @ViewBuilder
+    private var instructionIcon: some View {
+        let symbol: String = {
+            if arrived { return "flag.checkered" }
+            if user == nil { return "location.magnifyingglass" }
+            if let progress { return Self.maneuverSymbol(progress.nextInstruction) }
+            if computing { return "hourglass" }
+            return "wifi.slash"
+        }()
+        Image(systemName: symbol)
+            .font(.system(size: 28, weight: .bold))
+            .foregroundStyle(arrived ? Brand.allowed : .white)
+            .frame(width: 58, height: 58)
+            .background(arrived ? Color.white : Brand.allowed, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var instructionText: some View {
+        if arrived {
+            Text("You have arrived")
+                .font(.title2.weight(.heavy))
+            Text(target.detail ?? target.name)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(Legal.signage)
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.8))
+                .fixedSize(horizontal: false, vertical: true)
+        } else if user == nil {
+            Text("Waiting for your location…")
+                .font(.headline)
+        } else if let progress {
+            Text(Format.distance(progress.distanceToNext))
+                .font(.largeTitle.weight(.heavy))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Text(progress.nextInstruction ?? "Continue to the destination")
+                .font(.headline)
+                .foregroundStyle(.white.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        } else if computing {
+            Text("Finding the route…")
+                .font(.headline)
+        } else if let straightLine, let user {
+            Text("No route. No network?")
+                .font(.headline)
+            Text("\(Format.distance(straightLine)) as the crow flies, \(CompassDirection(bearing: Geo.bearing(from: user, to: target.coordinate)).towards).")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Try again") { Task { await computeRoute(force: true) } }
+                .buttonStyle(.pill(.secondary, compact: true))
+                .padding(.top, 6)
+        }
+    }
+
+    /// Where the user is heading, how long it takes, and the way out of guidance.
+    private var bottomCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    if let remaining {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(Format.duration(remaining / WalkingDistance.walkingSpeed))
+                                .font(.title2.weight(.heavy))
+                                .foregroundStyle(Brand.allowed)
+                            Text(Format.distance(remaining))
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .monospacedDigit()
+                    }
+                    Text(target.name)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    if let detail = target.detail {
+                        Text(detail)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
+                Spacer(minLength: 0)
+                Button("End") { dismiss() }
+                    .buttonStyle(.pill(.danger, compact: true))
+                    .accessibilityLabel("End the walk")
             }
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Button {
                     ExternalMaps.openInAppleMaps(target.coordinate, name: target.name)
                 } label: {
-                    Label("Apple Maps", systemImage: "map")
+                    Label("Apple Maps", systemImage: "map.fill")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.pill(.secondary, compact: true))
                 Button {
                     openURL(ExternalMaps.googleMapsURL(target.coordinate))
                 } label: {
                     Label("Google Maps", systemImage: "globe")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.pill(.secondary, compact: true))
                 Spacer(minLength: 0)
-                Button("End") { dismiss() }
-                    .buttonStyle(.borderedProminent)
             }
         }
-        .padding(14)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(16)
+        .card(radius: 28)
+    }
+
+    /// Metres left: along the route when there is one, else a walking estimate from the straight line.
+    private var remaining: Double? {
+        if let progress { return progress.remaining }
+        return straightLine.map { WalkingDistance.estimate(straightLine: $0).meters }
+    }
+
+    /// An arrow for an English MapKit instruction ("Turn left onto…", "Keep right…"), by whole words.
+    static func maneuverSymbol(_ instruction: String?) -> String {
+        guard let instruction else { return "flag.checkered" }
+        let words = Set(instruction.lowercased().split { !$0.isLetter }.map(String.init))
+        let gentle = !words.isDisjoint(with: ["slight", "slightly", "keep", "bear"])
+        if words.contains("left") { return gentle ? "arrow.up.left" : "arrow.turn.up.left" }
+        if words.contains("right") { return gentle ? "arrow.up.right" : "arrow.turn.up.right" }
+        if words.contains("arrive") || words.contains("destination") { return "flag.checkered" }
+        if words.contains("stairs") || words.contains("steps") { return "figure.stairs" }
+        return "arrow.up"
     }
 
     // MARK: Routing

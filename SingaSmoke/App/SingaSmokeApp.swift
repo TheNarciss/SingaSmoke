@@ -9,6 +9,7 @@ struct SingaSmokeApp: App {
         WindowGroup {
             RootView()
                 .environment(model)
+                .fontDesign(.rounded)
                 .task { await model.load() }
         }
     }
@@ -25,18 +26,14 @@ struct RootView: View {
         Group {
             switch model.phase {
             case .loading:
-                ProgressView("Loading data…")
+                VStack(spacing: 18) {
+                    Logo(size: 88)
+                    ProgressView()
+                }
             case .failed(let message):
                 ContentUnavailableView("Unreadable data", systemImage: "exclamationmark.triangle", description: Text(message))
             case .ready:
-                TabView {
-                    SmokeTab()
-                        .tabItem { Label("Smoke", systemImage: "smoke") }
-                    BuyTab()
-                        .tabItem { Label("Buy", systemImage: "cart") }
-                    AboutTab()
-                        .tabItem { Label("Info", systemImage: "info.circle") }
-                }
+                HomeView()
             }
         }
         .sheet(isPresented: disclaimerPending) {
@@ -48,7 +45,7 @@ struct RootView: View {
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
-            case .active where acceptedDisclaimer >= disclaimerVersion:
+            case .active where disclaimerAccepted:
                 model.location.start()
             case .background:
                 model.location.stop()
@@ -61,9 +58,17 @@ struct RootView: View {
         }
     }
 
+    private var disclaimerAccepted: Bool {
+        #if DEBUG
+        // CI screenshots launch with -uiSkipDisclaimer YES.
+        if UserDefaults.standard.bool(forKey: "uiSkipDisclaimer") { return true }
+        #endif
+        return acceptedDisclaimer >= disclaimerVersion
+    }
+
     private var disclaimerPending: Binding<Bool> {
         Binding(
-            get: { acceptedDisclaimer < disclaimerVersion },
+            get: { !disclaimerAccepted },
             set: { _ in }
         )
     }

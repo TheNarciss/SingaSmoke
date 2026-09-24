@@ -2,10 +2,12 @@
 
 App iPhone qui répond en quelques secondes à deux questions, partout à Singapour :
 
-1. **Est-ce que je risque une amende là où je suis ?** Le bandeau teste ta position contre 15 000 lieux non-fumeurs : zone d'Orchard Road, parcs, plages, réservoirs, 5 m autour des arrêts de bus, aires de jeux, coins fitness, terrains de sport, écoles, hôpitaux, hawker centres, gares routières, parkings à étages…
+1. **Est-ce que je risque une amende là où je suis ?** La carte de statut en haut de l'écran teste ta position contre 15 000 lieux non-fumeurs : zone d'Orchard Road, parcs, plages, réservoirs, 5 m autour des arrêts de bus, aires de jeux, coins fitness, terrains de sport, écoles, hôpitaux, hawker centres, gares routières, parkings à étages…
 2. **Où est le spot autorisé le plus proche ?** Carrés jaunes officiels NEA, zones fumeurs de Changi Airport, coins fumeurs cartographiés sur OpenStreetMap, triés par distance **à pied** (itinéraires Apple), avec guidage dans l'app ou dans Plans / Google Maps.
 
-Plus un onglet **Buy** : les ~4 200 points de vente de tabac sous licence HSA, filtrables par type (convenience store, supermarket, minimart, petrol station, kopitiam, other).
+Plus un mode **Buy** : les ~4 200 points de vente de tabac sous licence HSA, filtrables par type (convenience store, supermarket, minimart, petrol station, kopitiam, other).
+
+Un seul écran, la carte d'abord, dans l'esprit des apps de trottinettes comme Lime : fond de carte sobre, zones interdites en rouge, pastilles vertes pour les spots, carte de statut en haut, cartes des spots les plus proches à faire défiler en bas, sélecteur Smoke / Buy.
 
 Pas de compte, pas de serveur, pas de clé API, aucun suivi. iPhone uniquement, iOS 17 minimum, interface en anglais, clair et sombre, VoiceOver et tailles de texte dynamiques.
 
@@ -68,16 +70,18 @@ Les fichiers GeoJSON s'affichent directement sur une carte dans GitHub : c'est l
 
 ```
 SingaSmoke/                  l'app (SwiftUI, MapKit, CoreLocation)
-  App/                       point d'entrée, onglets, avertissement au premier lancement
+  App/                       point d'entrée, avertissement au premier lancement
   Model/                     état de l'app, localisation « quand l'app est ouverte », itinéraires Apple
-  Map/                       MKMapView : regroupement des 4 200 points, zones en rouge
-  Features/Smoke|Buy|Navigation|About   les écrans
+  Map/                       MKMapView : pastilles, regroupement des 4 200 points, zones en rouge
+  Features/Home              l'écran principal : carte, carte de statut, cartes des spots proches
+  Features/Smoke|Buy|Navigation|About   fiches, listes, guidage à pied, infos
+  Shared/Theme.swift         le style : couleurs, cartes flottantes, boutons pilule
   Resources/Data/            les données générées
 Packages/SingaSmokeCore/     toute la logique, sans interface : géométrie, zones, verdict, formats
   Tests/                     tests unitaires
-scripts/                     récupération et transformation des données (Node)
+scripts/                     récupération et transformation des données (Node), captures d'écran CI
 project.yml                  le projet Xcode décrit en texte (XcodeGen)
-.github/workflows/           ios.yml (tests, build, TestFlight), data.yml (données)
+.github/workflows/           ios.yml (tests, build, captures d'écran sur les PR, TestFlight), data.yml (données)
 ```
 
 La logique vit dans un package Swift séparé, Foundation seulement : elle se teste sans simulateur, sur macOS comme sur Linux.
