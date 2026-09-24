@@ -226,7 +226,7 @@ struct SingaMapView: UIViewRepresentable {
                 view.markerTintColor = .systemIndigo
                 view.glyphText = "\(cluster.memberAnnotations.count)"
                 view.displayPriority = .defaultHigh
-                view.accessibilityLabel = "\(cluster.memberAnnotations.count) points de vente"
+                view.accessibilityLabel = "\(cluster.memberAnnotations.count) shops"
                 return view
             case let marker as MarkerAnnotation:
                 let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.markerID, for: marker) as! MKMarkerAnnotationView

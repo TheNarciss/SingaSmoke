@@ -6,7 +6,7 @@ options:
   bundleIdPrefix: uk.riskybusinesses
   deploymentTarget:
     iOS: "17.0"
-  developmentLanguage: fr
+  developmentLanguage: en
   createIntermediateGroups: true
 
 settings:
@@ -42,14 +42,14 @@ targets:
       path: SingaSmoke/Info.plist
       properties:
         CFBundleDisplayName: SingaSmoke
-        CFBundleDevelopmentRegion: fr
+        CFBundleDevelopmentRegion: en
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.navigation
         LSRequiresIPhoneOS: true
         NSLocationWhenInUseUsageDescription: >-
-          SingaSmoke utilise ta position uniquement quand l'app est ouverte, pour te dire si tu es dans une
-          zone non-fumeur et trouver le spot autorisé le plus proche. Elle reste sur ton téléphone.
+          SingaSmoke uses your location only while the app is open, to tell you whether you are in a
+          no-smoking zone and to find the nearest place where smoking is allowed. It never leaves your phone.
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
         UISupportedInterfaceOrientations:

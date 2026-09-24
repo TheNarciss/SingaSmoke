@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "SingaSmokeCore",
-    defaultLocalization: "fr",
+    defaultLocalization: "en",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "SingaSmokeCore", targets: ["SingaSmokeCore"]),

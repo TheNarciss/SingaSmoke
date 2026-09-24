@@ -11,8 +11,8 @@ public enum Reliability: String, Sendable {
 
     public var label: String {
         switch self {
-        case .official: return "Officiel"
-        case .indicative: return "Indicatif"
+        case .official: return "Official"
+        case .indicative: return "Indicative"
         }
     }
 }
@@ -34,10 +34,10 @@ public enum SpotSource: String, Sendable, CaseIterable {
 
     public var label: String {
         switch self {
-        case .nea: return "Zone fumeur NEA"
-        case .changi: return "Zone fumeur Changi Airport"
-        case .osmArea: return "Espace fumeur (OpenStreetMap)"
-        case .osmVenue: return "Établissement avec coin fumeur (OpenStreetMap)"
+        case .nea: return "NEA designated smoking area"
+        case .changi: return "Changi Airport smoking area"
+        case .osmArea: return "Smoking area (OpenStreetMap)"
+        case .osmVenue: return "Venue with a smoking corner (OpenStreetMap)"
         }
     }
 
@@ -117,46 +117,46 @@ public enum ZoneKind: String, Sendable, CaseIterable {
 
     public var label: String {
         switch self {
-        case .nsz: return "Zone non-fumeur d'Orchard Road"
-        case .park: return "Parc ou jardin"
-        case .beach: return "Plage"
-        case .reservoir: return "Réservoir"
-        case .playground: return "Aire de jeux"
-        case .fitness: return "Coin fitness"
-        case .court: return "Terrain de sport"
-        case .busStop: return "Arrêt de bus"
-        case .busInterchange: return "Gare routière"
-        case .hospital: return "Hôpital"
-        case .school: return "École, crèche ou université"
-        case .hawker: return "Hawker centre ou food court"
-        case .stadium: return "Stade"
-        case .sportsCentre: return "Complexe sportif"
-        case .carPark: return "Parking à étages"
-        case .ferryTerminal: return "Terminal de ferry"
-        case .other: return "Lieu non-fumeur"
+        case .nsz: return "Orchard Road No-Smoking Zone"
+        case .park: return "Park or garden"
+        case .beach: return "Beach"
+        case .reservoir: return "Reservoir"
+        case .playground: return "Playground"
+        case .fitness: return "Fitness corner"
+        case .court: return "Sports court"
+        case .busStop: return "Bus stop"
+        case .busInterchange: return "Bus interchange"
+        case .hospital: return "Hospital"
+        case .school: return "School, childcare or university"
+        case .hawker: return "Hawker centre or food court"
+        case .stadium: return "Stadium"
+        case .sportsCentre: return "Sports centre"
+        case .carPark: return "Multi-storey car park"
+        case .ferryTerminal: return "Ferry terminal"
+        case .other: return "No-smoking place"
         }
     }
 
     /// The rule, in one line, as the regulations put it.
     public var rule: String {
         switch self {
-        case .nsz: return "Interdit partout dans la zone, sauf dans les carrés jaunes (DSA)."
-        case .park: return "Parcs et jardins : 100 % non-fumeur."
-        case .beach: return "Plages récréatives (East Coast, Changi, Sentosa…) : non-fumeur."
-        case .reservoir: return "Réservoir : non-fumeur."
-        case .playground: return "Aires de jeux et leurs abords : interdit."
-        case .fitness: return "Coins fitness et leurs abords : interdit."
-        case .court: return "Terrains de sport (basket, badminton, tennis…) : interdit."
-        case .busStop: return "Interdit à moins de 5 m d'un abri ou poteau de bus."
-        case .busInterchange: return "Gares routières : interdit."
-        case .hospital: return "Tout le terrain de l'hôpital, parkings compris."
-        case .school: return "Interdit dans l'enceinte et à moins de 5 m de la clôture."
-        case .hawker: return "Interdit partout, sauf coin fumeur marqué en jaune."
-        case .stadium: return "Stades et leurs abords : interdit."
-        case .sportsCentre: return "Complexes sportifs et piscines : interdit."
-        case .carPark: return "Parkings à étages : lieu couvert, interdit."
-        case .ferryTerminal: return "Terminaux de ferry : interdit."
-        case .other: return "Lieu non-fumeur."
+        case .nsz: return "Banned everywhere in the zone, except inside the yellow boxes (DSAs)."
+        case .park: return "Parks and gardens are 100% smoke-free."
+        case .beach: return "Recreational beaches (East Coast, Changi, Sentosa…) are smoke-free."
+        case .reservoir: return "Reservoirs are smoke-free."
+        case .playground: return "Banned in playgrounds and right around them."
+        case .fitness: return "Banned in fitness corners and right around them."
+        case .court: return "Banned on sports courts (basketball, badminton, tennis…)."
+        case .busStop: return "Banned within 5 m of a bus shelter or bus stop pole."
+        case .busInterchange: return "Banned at bus interchanges."
+        case .hospital: return "Banned on the whole hospital grounds, car parks included."
+        case .school: return "Banned inside the compound and within 5 m of its fence."
+        case .hawker: return "Banned everywhere except inside a yellow-marked smoking corner."
+        case .stadium: return "Banned in stadiums and right around them."
+        case .sportsCentre: return "Banned in sports centres and swimming complexes."
+        case .carPark: return "Multi-storey car parks are covered spaces: banned."
+        case .ferryTerminal: return "Banned at ferry terminals."
+        case .other: return "No-smoking place."
         }
     }
 
@@ -224,7 +224,7 @@ public struct NoSmokingZone: Identifiable, Sendable {
 
     public var reliability: Reliability { source.reliability }
 
-    /// "Parc ou jardin", or the zone's own name when it has one.
+    /// "Park or garden", or "Park or garden · Bishan-Ang Mo Kio Park" when the zone has a name.
     public var title: String {
         if let name, !name.isEmpty { return "\(kind.label) · \(name)" }
         return kind.label
@@ -293,12 +293,12 @@ public enum RetailCategory: String, Sendable, CaseIterable, Identifiable {
 
     public var label: String {
         switch self {
-        case .convenience: return "Supérette"
-        case .supermarket: return "Supermarché"
+        case .convenience: return "Convenience store"
+        case .supermarket: return "Supermarket"
         case .minimart: return "Minimart"
-        case .petrol: return "Station-service"
-        case .kopitiam: return "Kopitiam & resto"
-        case .other: return "Autre"
+        case .petrol: return "Petrol station"
+        case .kopitiam: return "Kopitiam & F&B"
+        case .other: return "Other"
         }
     }
 }

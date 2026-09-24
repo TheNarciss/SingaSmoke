@@ -63,9 +63,9 @@ final class ZoneTests: XCTestCase {
     func testTitleUsesTheName() {
         let named = NoSmokingZone(id: "p", kind: .park, name: "Bishan-Ang Mo Kio Park", source: .osm, buffer: 0,
                                   geometry: .point(Fixtures.origin))
-        XCTAssertEqual(named.title, "Parc ou jardin · Bishan-Ang Mo Kio Park")
+        XCTAssertEqual(named.title, "Park or garden · Bishan-Ang Mo Kio Park")
         let anonymous = Fixtures.pointZone(id: "b", kind: .busStop, at: Fixtures.origin, radius: 11)
-        XCTAssertEqual(anonymous.title, "Arrêt de bus")
+        XCTAssertEqual(anonymous.title, "Bus stop")
     }
 
     func testReliabilityFollowsTheSource() {

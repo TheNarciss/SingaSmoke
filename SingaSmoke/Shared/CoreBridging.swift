@@ -26,8 +26,8 @@ extension Reliability {
     var symbol: String { self == .official ? "checkmark.seal.fill" : "exclamationmark.bubble.fill" }
     var explanation: String {
         switch self {
-        case .official: return "Publié par l'organisme responsable."
-        case .indicative: return "Ajouté par des contributeurs OpenStreetMap : une piste, pas une garantie."
+        case .official: return "Published by the agency in charge."
+        case .indicative: return "Added by OpenStreetMap contributors: a lead, not a guarantee."
         }
     }
 }
@@ -94,8 +94,8 @@ extension RetailCategory {
 }
 
 enum Legal {
-    static let fine = "Amende : 200 S$ sur le champ, jusqu'à 1 000 S$ au tribunal."
-    static let signage = "Fie-toi toujours à la signalétique sur place : panneaux et marquage jaune au sol."
-    static let unmapped = "Aucune carte ne montre l'intérieur des bâtiments, les passages couverts, les passerelles, les halls et void decks HDB ni les 5 m autour des entrées : fumer y est interdit aussi."
-    static let vape = "Tabac : 21 ans minimum. Vapes et e-cigarettes sont illégales à Singapour, même en possession."
+    static let fine = "Fine: S$200 on the spot, up to S$1,000 if it goes to court."
+    static let signage = "Always go by the signs on site: notices and yellow markings on the ground."
+    static let unmapped = "No map shows building interiors, covered walkways, overhead bridges, HDB lift lobbies and void decks, or the 5 m around entrances: smoking is banned there too."
+    static let vape = "Tobacco is 21+. Vapes and e-cigarettes are illegal in Singapore, even to possess."
 }

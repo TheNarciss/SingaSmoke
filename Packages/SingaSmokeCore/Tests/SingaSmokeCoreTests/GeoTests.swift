@@ -70,8 +70,8 @@ final class GeoTests: XCTestCase {
         XCTAssertEqual(CompassDirection(bearing: 359), .north)
         XCTAssertEqual(CompassDirection(bearing: -45), .northWest)
         XCTAssertEqual(CompassDirection(bearing: 720 + 270), .west)
-        XCTAssertEqual(CompassDirection.east.towards, "vers l'est")
-        XCTAssertEqual(CompassDirection.southWest.towards, "vers le sud-ouest")
+        XCTAssertEqual(CompassDirection.east.towards, "to the east")
+        XCTAssertEqual(CompassDirection.southWest.towards, "to the south-west")
     }
 
     func testBoundingBoxExpansion() {

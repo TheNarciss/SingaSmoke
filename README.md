@@ -5,9 +5,9 @@ App iPhone qui répond en quelques secondes à deux questions, partout à Singap
 1. **Est-ce que je risque une amende là où je suis ?** Le bandeau teste ta position contre 15 000 lieux non-fumeurs : zone d'Orchard Road, parcs, plages, réservoirs, 5 m autour des arrêts de bus, aires de jeux, coins fitness, terrains de sport, écoles, hôpitaux, hawker centres, gares routières, parkings à étages…
 2. **Où est le spot autorisé le plus proche ?** Carrés jaunes officiels NEA, zones fumeurs de Changi Airport, coins fumeurs cartographiés sur OpenStreetMap, triés par distance **à pied** (itinéraires Apple), avec guidage dans l'app ou dans Plans / Google Maps.
 
-Plus un onglet **Acheter** : les ~4 200 points de vente de tabac sous licence HSA, filtrables par type (supérette, supermarché, minimart, station-service, kopitiam, autre).
+Plus un onglet **Buy** : les ~4 200 points de vente de tabac sous licence HSA, filtrables par type (convenience store, supermarket, minimart, petrol station, kopitiam, other).
 
-Pas de compte, pas de serveur, pas de clé API, aucun suivi. iPhone uniquement, iOS 17 minimum, français, clair et sombre, VoiceOver et tailles de texte dynamiques.
+Pas de compte, pas de serveur, pas de clé API, aucun suivi. iPhone uniquement, iOS 17 minimum, interface en anglais, clair et sombre, VoiceOver et tailles de texte dynamiques.
 
 > Les données peuvent être périmées. Fie-toi toujours à la signalétique sur place : panneaux et marquage jaune au sol.
 
@@ -25,10 +25,10 @@ Pas de compte, pas de serveur, pas de clé API, aucun suivi. iPhone uniquement, 
 
 Il n'existe **aucun registre national des coins fumeurs** : hors Orchard et Changi, ceux des coffee shops, bureaux et zones industrielles ne sont publiés nulle part. Et une carte ne peut pas voir l'intérieur d'un bâtiment, un passage couvert, une passerelle, un void deck HDB ou les 5 m autour d'une entrée, où fumer est interdit aussi. D'où un verdict à quatre états plutôt qu'un simple « OK / interdit » :
 
-- 🔴 **Zone interdite** : lieu non-fumeur connu, avec la direction de la sortie et le spot le plus proche ;
-- 🟠 **Limite de zone** : le bord est dans la marge d'erreur du GPS ;
-- 🟢 **Zone fumeur** : carré jaune NEA (qui l'emporte sur la zone d'Orchard autour) ou coin fumeur signalé ;
-- **Zone OK** : aucune interdiction connue ici ; en plein air, hors abri, loin des entrées, c'est en principe autorisé.
+- 🔴 **You're in a no-smoking zone** : lieu non-fumeur connu, avec la direction de la sortie et le spot le plus proche ;
+- 🟠 **Edge of a no-smoking zone** : le bord est dans la marge d'erreur du GPS ;
+- 🟢 **Designated smoking area** : carré jaune NEA (qui l'emporte sur la zone d'Orchard autour) ou coin fumeur signalé ;
+- **Zone OK: no known restriction here** : en plein air, hors abri, loin des entrées, c'est en principe autorisé.
 
 Amende : 200 S$ sur le champ, jusqu'à 1 000 S$ au tribunal (NEA).
 

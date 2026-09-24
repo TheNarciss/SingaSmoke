@@ -19,23 +19,23 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     /// Bumped if the disclaimer ever changes and must be read again.
     @AppStorage("acceptedDisclaimerVersion") private var acceptedDisclaimer = 0
-    private let disclaimerVersion = 1
+    private let disclaimerVersion = 2
 
     var body: some View {
         Group {
             switch model.phase {
             case .loading:
-                ProgressView("Chargement des données…")
+                ProgressView("Loading data…")
             case .failed(let message):
-                ContentUnavailableView("Données illisibles", systemImage: "exclamationmark.triangle", description: Text(message))
+                ContentUnavailableView("Unreadable data", systemImage: "exclamationmark.triangle", description: Text(message))
             case .ready:
                 TabView {
                     SmokeTab()
-                        .tabItem { Label("Fumer", systemImage: "smoke") }
+                        .tabItem { Label("Smoke", systemImage: "smoke") }
                     BuyTab()
-                        .tabItem { Label("Acheter", systemImage: "cart") }
+                        .tabItem { Label("Buy", systemImage: "cart") }
                     AboutTab()
-                        .tabItem { Label("Infos", systemImage: "info.circle") }
+                        .tabItem { Label("Info", systemImage: "info.circle") }
                 }
             }
         }

@@ -25,7 +25,7 @@ struct SmokeTab: View {
                     onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) }
                 )
                 .ignoresSafeArea(edges: .top)
-                .accessibilityLabel("Carte des zones fumeurs et non-fumeurs")
+                .accessibilityLabel("Map of smoking and no-smoking areas")
 
                 VStack(spacing: 10) {
                     VerdictBanner(
@@ -38,7 +38,7 @@ struct SmokeTab: View {
                     Spacer(minLength: 0)
                     HStack {
                         Spacer()
-                        MapButton(symbol: "location.fill", label: "Me recentrer") { recenter += 1 }
+                        MapButton(symbol: "location.fill", label: "Centre on my location") { recenter += 1 }
                     }
                     NearestSpotsCard(places: Array(model.nearestSpots.prefix(3)),
                                      referenceIsUser: model.referenceIsUser,
@@ -81,7 +81,7 @@ struct SmokeTab: View {
 
     private var exitMarker: MarkerAnnotation? {
         guard showExit, case .prohibited(let hit, _, _) = model.verdict else { return nil }
-        return MarkerAnnotation(.exit, coordinate: hit.exit, title: "Sortie de zone")
+        return MarkerAnnotation(.exit, coordinate: hit.exit, title: "Way out of the zone")
     }
 }
 
@@ -104,15 +104,15 @@ struct NearestSpotsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(referenceIsUser ? "Les plus proches à pied" : "Les plus proches du centre de la carte")
+                Text(referenceIsUser ? "Nearest on foot" : "Nearest to the map centre")
                     .font(.subheadline.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
-                Button("Tout voir", action: onShowAll)
+                Button("See all", action: onShowAll)
                     .font(.subheadline)
             }
             if places.isEmpty {
-                Text("Chargement…")
+                Text("Loading…")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -124,7 +124,7 @@ struct NearestSpotsCard: View {
                              subtitle: place.item.details, walking: place.walking, badge: place.item.rowBadge)
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint("Ouvre la fiche")
+                .accessibilityHint("Opens the details")
             }
         }
         .padding(12)
@@ -143,13 +143,13 @@ struct SpotListView: View {
     var body: some View {
         List {
             Section {
-                Toggle("Sources officielles seulement", isOn: $officialOnly)
+                Toggle("Official sources only", isOn: $officialOnly)
             } footer: {
                 Text(model.referenceIsUser
-                     ? "Distances à pied calculées par Apple Plans quand le réseau le permet ; « ≈ » signale une estimation."
-                     : "Sans ta position, les distances partent du centre de la carte.")
+                     ? "Walking distances come from Apple Maps when online; \"≈\" marks an estimate."
+                     : "Without your location, distances are measured from the centre of the map.")
             }
-            Section("Spots fumeurs") {
+            Section("Smoking spots") {
                 ForEach(places) { place in
                     Button {
                         selected = place.item
@@ -161,7 +161,7 @@ struct SpotListView: View {
                 }
             }
         }
-        .navigationTitle("Spots fumeurs")
+        .navigationTitle("Smoking spots")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selected, onDismiss: {
             if let spot = pending { pending = nil; onGo(spot) }

@@ -20,7 +20,7 @@ public struct SingaSmokeData: Sendable {
         case missing(String)
         public var description: String {
             switch self {
-            case .missing(let file): return "Fichier de données manquant : \(file)"
+            case .missing(let file): return "Missing data file: \(file)"
             }
         }
     }

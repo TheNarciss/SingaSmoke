@@ -106,7 +106,7 @@ for (const f of raw('nea_dsa.geojson').features) {
 // OpenStreetMap. Two different things, kept apart:
 //   amenity=smoking_area / smoking=designated          -> a smoking area   ('osm_area')
 //   smoking=outside|separated|isolated|yes on a venue   -> a smoking corner ('osm_venue')
-const CORNER = { isolated: 'Salle fumeur fermée', separated: 'Espace fumeur séparé', outside: 'Coin fumeur en extérieur', yes: 'Fumer autorisé selon OSM' };
+const CORNER = { isolated: 'Enclosed smoking room', separated: 'Separate smoking section', outside: 'Outdoor smoking area', yes: 'Smoking allowed, according to OSM' };
 {
   const seen = new Set();
   for (const e of raw('osm_smoking.json').elements) {
@@ -122,12 +122,12 @@ const CORNER = { isolated: 'Salle fumeur fermée', separated: 'Espace fumeur sé
     if (seen.has(id)) continue;
     seen.add(id);
     const bits = [];
-    if (t.shelter === 'yes' || t.covered === 'yes') bits.push('abrité');
-    if (t.bench === 'yes') bits.push('banc');
-    if (t.bin === 'yes' || t.ashtray === 'yes') bits.push('cendrier');
-    if (t.lit === 'yes') bits.push('éclairé');
+    if (t.shelter === 'yes' || t.covered === 'yes') bits.push('sheltered');
+    if (t.bench === 'yes') bits.push('bench');
+    if (t.bin === 'yes' || t.ashtray === 'yes') bits.push('ashtray');
+    if (t.lit === 'yes') bits.push('lit at night');
     spots.push(feature(id, point(lng, lat), {
-      name: (t.name || '').trim() || (isArea ? 'Espace fumeur' : 'Coin fumeur'),
+      name: (t.name || '').trim() || (isArea ? 'Smoking area' : 'Smoking corner'),
       details: isArea ? bits.join(' · ') : corner,
       source: isArea ? 'osm_area' : 'osm_venue',
       approx: false,

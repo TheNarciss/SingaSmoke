@@ -128,16 +128,16 @@ public struct LocalProjection: Sendable {
     }
 }
 
-/// Eight-point compass, in French.
+/// Eight-point compass.
 public enum CompassDirection: String, CaseIterable, Sendable {
-    case north = "nord"
-    case northEast = "nord-est"
-    case east = "est"
-    case southEast = "sud-est"
-    case south = "sud"
-    case southWest = "sud-ouest"
-    case west = "ouest"
-    case northWest = "nord-ouest"
+    case north
+    case northEast = "north-east"
+    case east
+    case southEast = "south-east"
+    case south
+    case southWest = "south-west"
+    case west
+    case northWest = "north-west"
 
     public init(bearing: Double) {
         let normalized = (bearing.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
@@ -145,11 +145,6 @@ public enum CompassDirection: String, CaseIterable, Sendable {
         self = CompassDirection.allCases[index]
     }
 
-    /// "vers le nord", "vers l'est".
-    public var towards: String {
-        switch self {
-        case .east, .west: return "vers l'\(rawValue)"
-        default: return "vers le \(rawValue)"
-        }
-    }
+    /// "to the north", "to the south-west".
+    public var towards: String { "to the \(rawValue)" }
 }

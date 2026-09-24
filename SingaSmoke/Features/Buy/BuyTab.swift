@@ -21,14 +21,14 @@ struct BuyTab: View {
                     onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) }
                 )
                 .ignoresSafeArea(edges: .top)
-                .accessibilityLabel("Carte des points de vente de tabac")
+                .accessibilityLabel("Map of licensed tobacco retailers")
 
                 VStack(spacing: 10) {
                     CategoryFilter()
                     Spacer(minLength: 0)
                     HStack {
                         Spacer()
-                        MapButton(symbol: "location.fill", label: "Me recentrer") { recenter += 1 }
+                        MapButton(symbol: "location.fill", label: "Centre on my location") { recenter += 1 }
                     }
                     NearestRetailersCard(places: Array(model.nearestRetailers.prefix(3)),
                                          referenceIsUser: model.referenceIsUser,
@@ -90,7 +90,7 @@ struct CategoryFilter: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(on ? .isSelected : [])
-                    .accessibilityHint(on ? "Masque cette catégorie" : "Affiche cette catégorie")
+                    .accessibilityHint(on ? "Hides this category" : "Shows this category")
                 }
             }
             .padding(.horizontal, 2)
@@ -109,11 +109,11 @@ struct NearestRetailersCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(referenceIsUser ? "Points de vente les plus proches" : "Proches du centre de la carte")
+                Text(referenceIsUser ? "Nearest shops" : "Nearest to the map centre")
                     .font(.subheadline.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
-                Button("Tout voir", action: onShowAll)
+                Button("See all", action: onShowAll)
                     .font(.subheadline)
             }
             ForEach(places) { place in
@@ -124,7 +124,7 @@ struct NearestRetailersCard: View {
                              title: place.item.name, subtitle: place.item.category.label, walking: place.walking)
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint("Ouvre la fiche")
+                .accessibilityHint("Opens the details")
             }
         }
         .padding(12)
@@ -151,10 +151,10 @@ struct RetailerListView: View {
                     .buttonStyle(.plain)
                 }
             } footer: {
-                Text("Registre HSA des licences de vente de tabac. Position au bâtiment (code postal), sans horaires d'ouverture. \(Legal.vape)")
+                Text("HSA register of licensed tobacco retailers. Located to the building of the postal code, without opening hours. \(Legal.vape)")
             }
         }
-        .navigationTitle("Points de vente")
+        .navigationTitle("Shops")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selected, onDismiss: {
             if let shop = pending { pending = nil; onGo(shop) }
@@ -192,14 +192,14 @@ struct RetailerDetailView: View {
                     ReliabilityBadge(reliability: .official)
                 }
                 .padding(.vertical, 4)
-                LabeledContent("Adresse") {
+                LabeledContent("Address") {
                     Text(retailer.address).multilineTextAlignment(.trailing)
                 }
                 if let building = retailer.building {
-                    LabeledContent("Bâtiment", value: building)
+                    LabeledContent("Building", value: building)
                 }
                 if let licensee = retailer.licensee {
-                    LabeledContent("Titulaire de la licence") {
+                    LabeledContent("Licensee") {
                         Text(licensee).multilineTextAlignment(.trailing)
                     }
                 }
@@ -210,23 +210,23 @@ struct RetailerDetailView: View {
                     Text(Format.walking(walking ?? estimate)).monospacedDigit()
                 }
             } footer: {
-                Text("Position au bâtiment du code postal : dans un centre commercial, cherche la boutique sur place.")
+                Text("Located to the building of its postal code: in a mall, look for the shop on site.")
             }
 
             Section {
                 Button(action: onGo) {
-                    Label("Itinéraire à pied dans l'app", systemImage: "figure.walk")
+                    Label("Walking directions in the app", systemImage: "figure.walk")
                         .font(.headline)
                 }
                 Button {
                     ExternalMaps.openInAppleMaps(retailer.coordinate, name: retailer.name)
                 } label: {
-                    Label("Ouvrir dans Plans", systemImage: "map")
+                    Label("Open in Apple Maps", systemImage: "map")
                 }
                 Button {
                     openURL(ExternalMaps.googleMapsURL(retailer.coordinate))
                 } label: {
-                    Label("Ouvrir dans Google Maps", systemImage: "globe")
+                    Label("Open in Google Maps", systemImage: "globe")
                 }
             } footer: {
                 Text(Legal.vape)
@@ -236,7 +236,7 @@ struct RetailerDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Fermer") { dismiss() }
+                Button("Close") { dismiss() }
             }
         }
         .task(id: retailer.id) {
