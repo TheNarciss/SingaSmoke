@@ -55,7 +55,7 @@ struct GuidanceView: View {
                 Spacer(minLength: 0)
                 HStack {
                     Spacer()
-                    MapButton(symbol: "location.north.line.fill", label: "Recentrer sur moi") { recenter += 1 }
+                    MapButton(symbol: "location.north.line.fill", label: "Centre on my location") { recenter += 1 }
                 }
                 bottomBar
             }
@@ -87,7 +87,7 @@ struct GuidanceView: View {
     private var instructionCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             if arrived {
-                Label("Tu es arrivé", systemImage: "flag.checkered")
+                Label("You have arrived", systemImage: "flag.checkered")
                     .font(.title2.weight(.bold))
                 Text(target.detail ?? target.name)
                     .font(.body)
@@ -95,27 +95,27 @@ struct GuidanceView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else if user == nil {
-                Label("En attente de ta position…", systemImage: "location.magnifyingglass")
+                Label("Waiting for your location…", systemImage: "location.magnifyingglass")
                     .font(.headline)
             } else if let progress {
-                Text(progress.nextInstruction ?? "Continue jusqu'à la destination")
+                Text(progress.nextInstruction ?? "Continue to the destination")
                     .font(.title3.weight(.bold))
                     .fixedSize(horizontal: false, vertical: true)
-                Text("dans \(Format.distance(progress.distanceToNext))")
+                Text("in \(Format.distance(progress.distanceToNext))")
                     .font(.headline)
                     .foregroundStyle(.blue)
-                Text("Reste \(Format.distance(progress.remaining)) · \(Format.duration(progress.remaining / WalkingDistance.walkingSpeed))")
+                Text("\(Format.distance(progress.remaining)) · \(Format.duration(progress.remaining / WalkingDistance.walkingSpeed)) to go")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else if computing {
-                Label("Calcul de l'itinéraire…", systemImage: "hourglass")
+                Label("Calculating the route…", systemImage: "hourglass")
                     .font(.headline)
             } else if let straightLine, let user {
-                Label("Itinéraire indisponible, pas de réseau ?", systemImage: "wifi.slash")
+                Label("No route available. No network?", systemImage: "wifi.slash")
                     .font(.headline)
-                Text("Destination à \(Format.distance(straightLine)) à vol d'oiseau, \(CompassDirection(bearing: Geo.bearing(from: user, to: target.coordinate)).towards).")
+                Text("The destination is \(Format.distance(straightLine)) away as the crow flies, \(CompassDirection(bearing: Geo.bearing(from: user, to: target.coordinate)).towards).")
                     .font(.subheadline)
-                Button("Réessayer") { Task { await computeRoute(force: true) } }
+                Button("Try again") { Task { await computeRoute(force: true) } }
                     .buttonStyle(.bordered)
             }
         }
@@ -141,7 +141,7 @@ struct GuidanceView: View {
                 Button {
                     ExternalMaps.openInAppleMaps(target.coordinate, name: target.name)
                 } label: {
-                    Label("Plans", systemImage: "map")
+                    Label("Apple Maps", systemImage: "map")
                 }
                 .buttonStyle(.bordered)
                 Button {
@@ -151,7 +151,7 @@ struct GuidanceView: View {
                 }
                 .buttonStyle(.bordered)
                 Spacer(minLength: 0)
-                Button("Terminer") { dismiss() }
+                Button("End") { dismiss() }
                     .buttonStyle(.borderedProminent)
             }
         }

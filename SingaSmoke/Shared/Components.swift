@@ -1,7 +1,7 @@
 import SingaSmokeCore
 import SwiftUI
 
-/// "Officiel" / "Indicatif", with an icon so it never relies on colour alone.
+/// "Official" / "Indicative", with an icon so it never relies on colour alone.
 struct ReliabilityBadge: View {
     let reliability: Reliability
     var approximate = false
@@ -11,7 +11,7 @@ struct ReliabilityBadge: View {
             Label(reliability.label, systemImage: reliability.symbol)
                 .foregroundStyle(reliability.color)
             if approximate {
-                Label("Position approximative", systemImage: "scope")
+                Label("Approximate position", systemImage: "scope")
                     .foregroundStyle(.orange)
             }
         }
@@ -70,9 +70,9 @@ struct PlaceRow: View {
 
 extension SmokingSpot {
     var rowBadge: String? {
-        if isAirside { return "Zone transit" }
+        if isAirside { return "Transit area" }
         if isApproximate { return "≈ position" }
-        if reliability == .indicative { return "Indicatif" }
+        if reliability == .indicative { return "Indicative" }
         return nil
     }
 

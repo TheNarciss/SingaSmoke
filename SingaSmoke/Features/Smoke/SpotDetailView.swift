@@ -26,16 +26,16 @@ struct SpotDetailView: View {
                 .padding(.vertical, 4)
 
                 if !spot.details.isEmpty {
-                    LabeledContent("Emplacement") {
+                    LabeledContent("Where") {
                         Text(spot.details)
                             .multilineTextAlignment(.trailing)
                     }
                 }
                 if let level = spot.level, !level.isEmpty {
-                    LabeledContent("Niveau", value: level)
+                    LabeledContent("Level", value: level)
                 }
                 if let hours = spot.openingHours {
-                    LabeledContent("Horaires", value: hours)
+                    LabeledContent("Opening hours", value: hours)
                 }
                 LabeledContent("Distance") {
                     Text(Format.walking(walking ?? currentEstimate))
@@ -49,7 +49,7 @@ struct SpotDetailView: View {
                         Label(approximateText, systemImage: "scope")
                     }
                     if spot.isAirside {
-                        Label("Zone transit : après l'immigration, avec une carte d'embarquement.", systemImage: "airplane.departure")
+                        Label("Transit area: past immigration, with a boarding pass.", systemImage: "airplane.departure")
                     }
                     if spot.reliability == .indicative {
                         Label(Reliability.indicative.explanation, systemImage: Reliability.indicative.symbol)
@@ -65,45 +65,45 @@ struct SpotDetailView: View {
                         case .success(let image):
                             image.resizable().scaledToFit()
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                                .accessibilityLabel("Photo NEA de l'emplacement : \(spot.details)")
+                                .accessibilityLabel("NEA photo of the spot: \(spot.details)")
                         case .failure:
-                            Label("Photo indisponible hors ligne", systemImage: "wifi.slash")
+                            Label("Photo unavailable offline", systemImage: "wifi.slash")
                                 .foregroundStyle(.secondary)
                         default:
                             ProgressView().frame(maxWidth: .infinity, minHeight: 120)
                         }
                     }
                 } header: {
-                    Text("Photo officielle NEA")
+                    Text("Official NEA photo")
                 } footer: {
-                    Text("Le carré jaune au sol marque l'endroit exact.")
+                    Text("The yellow box painted on the ground marks the exact spot.")
                 }
             }
 
             Section {
                 Button(action: onGo) {
-                    Label("Itinéraire à pied dans l'app", systemImage: "figure.walk")
+                    Label("Walking directions in the app", systemImage: "figure.walk")
                         .font(.headline)
                 }
                 Button {
                     ExternalMaps.openInAppleMaps(spot.coordinate, name: spot.name)
                 } label: {
-                    Label("Ouvrir dans Plans", systemImage: "map")
+                    Label("Open in Apple Maps", systemImage: "map")
                 }
                 Button {
                     openURL(ExternalMaps.googleMapsURL(spot.coordinate))
                 } label: {
-                    Label("Ouvrir dans Google Maps", systemImage: "globe")
+                    Label("Open in Google Maps", systemImage: "globe")
                 }
             }
 
             Section {
                 if let updated = Format.date(spot.updated) {
-                    LabeledContent("Mis à jour par la source", value: updated)
+                    LabeledContent("Updated by the source", value: updated)
                 }
                 LabeledContent("Source", value: spot.source.publisher)
                 if let url = spot.sourceURL {
-                    Link("Voir la source", destination: url)
+                    Link("View the source", destination: url)
                 }
             } footer: {
                 Text(Legal.signage)
@@ -113,7 +113,7 @@ struct SpotDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Fermer") { dismiss() }
+                Button("Close") { dismiss() }
             }
         }
         .task(id: spot.id) {
@@ -124,9 +124,9 @@ struct SpotDetailView: View {
 
     private var approximateText: String {
         if let radius = spot.approximateRadius {
-            return "Le repère peut être à \(Format.distance(radius)) du vrai emplacement : suis la description sur place."
+            return "The pin may be up to \(Format.distance(radius)) from the actual spot: follow the description on site."
         }
-        return "Le repère est approximatif : suis la description sur place."
+        return "The pin is approximate: follow the description on site."
     }
 
     private var currentEstimate: WalkingDistance {

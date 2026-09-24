@@ -37,7 +37,7 @@ struct VerdictBanner: View {
                         Image(systemName: expanded ? "chevron.up.circle" : "info.circle")
                             .font(.title3)
                     }
-                    .accessibilityLabel(expanded ? "Masquer les détails" : "Afficher les détails")
+                    .accessibilityLabel(expanded ? "Hide details" : "Show details")
                 }
             }
 
@@ -82,34 +82,34 @@ struct VerdictBanner: View {
     private var title: String {
         switch verdict {
         case .noLocation:
-            return locationDenied ? "Localisation désactivée" : "Recherche de ta position…"
+            return locationDenied ? "Location is off" : "Finding your location…"
         case .outsideSingapore:
-            return "Tu n'es pas à Singapour"
+            return "You're not in Singapore"
         case .atSpot(let spot, _, _):
-            return spot.reliability == .official ? "Zone fumeur autorisée" : "Coin fumeur signalé ici"
+            return spot.reliability == .official ? "Designated smoking area" : "Smoking spot reported here"
         case .prohibited(let hit, _, _):
-            return hit.isCertain ? "Tu es dans une zone interdite" : "Tu es sans doute en zone interdite"
+            return hit.isCertain ? "You're in a no-smoking zone" : "You're probably in a no-smoking zone"
         case .nearZone:
-            return "Limite d'une zone interdite"
+            return "Edge of a no-smoking zone"
         case .clear:
-            return "Zone OK : aucune interdiction connue ici"
+            return "Zone OK: no known restriction here"
         }
     }
 
     private var subtitle: String? {
         switch verdict {
         case .noLocation:
-            return locationDenied ? "Active-la dans Réglages pour savoir si tu peux fumer ici." : nil
+            return locationDenied ? "Turn it on in Settings to know whether you can smoke here." : nil
         case .outsideSingapore:
-            return "Les distances partent du centre de la carte."
+            return "Distances are measured from the centre of the map."
         case .atSpot(let spot, let distance, _):
             return "\(spot.name) · \(Format.distance(distance))"
         case .prohibited(let hit, _, _):
-            return "\(hit.zone.title). Sors à \(Format.distance(hit.exitDistance)) \(hit.exitDirection.towards)."
+            return "\(hit.zone.title). Way out: \(Format.distance(hit.exitDistance)) \(hit.exitDirection.towards)."
         case .nearZone(let hit):
-            return "\(hit.zone.title) à \(Format.distance(max(0, hit.signedDistance))) : ton GPS ne permet pas de trancher."
+            return "\(hit.zone.title) \(Format.distance(max(0, hit.signedDistance))) away: your GPS can't tell for sure."
         case .clear:
-            return "En plein air, hors abri, loin des entrées : en principe autorisé."
+            return "Outdoors, not under a shelter, away from entrances: generally allowed."
         }
     }
 
@@ -119,19 +119,19 @@ struct VerdictBanner: View {
         case .atSpot(let spot, _, let caution):
             if !spot.details.isEmpty { lines.append(spot.details) }
             if spot.reliability == .indicative { lines.append(Reliability.indicative.explanation) }
-            if let caution { lines.append("Attention : \(caution.zone.title) à \(Format.distance(max(0, caution.signedDistance))).") }
+            if let caution { lines.append("Careful: \(caution.zone.title) \(Format.distance(max(0, caution.signedDistance))) away.") }
         case .prohibited(let hit, let others, let spotHere):
             lines.append(hit.zone.kind.rule)
-            for other in others.prefix(3) { lines.append("Aussi : \(other.zone.title).") }
+            for other in others.prefix(3) { lines.append("Also: \(other.zone.title).") }
             if spotHere != nil {
-                lines.append("Un coin fumeur est signalé ici sur OpenStreetMap, mais la règle de la zone l'emporte.")
+                lines.append("OpenStreetMap reports a smoking spot here, but the zone's rule wins.")
             }
-            if hit.zone.reliability == .indicative { lines.append("Zone tirée d'OpenStreetMap : indicative.") }
+            if hit.zone.reliability == .indicative { lines.append("Zone taken from OpenStreetMap: indicative.") }
             lines.append(Legal.fine)
         case .nearZone(let hit):
             lines.append(hit.zone.kind.rule)
         case .clear(let nearby):
-            if let nearby { lines.append("À proximité : \(nearby.zone.title), à \(Format.distance(nearby.signedDistance)).") }
+            if let nearby { lines.append("Nearby: \(nearby.zone.title), \(Format.distance(nearby.signedDistance)) away.") }
             lines.append(Legal.unmapped)
         default:
             break
@@ -150,14 +150,14 @@ struct VerdictBanner: View {
     @ViewBuilder
     private var actions: some View {
         if case .noLocation = verdict, locationDenied {
-            Button("Ouvrir Réglages") {
+            Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
             }
             .buttonStyle(.borderedProminent)
         } else {
             if case .prohibited = verdict {
                 Button(action: onShowExit) {
-                    Label("Voir la sortie de zone sur la carte", systemImage: "figure.walk")
+                    Label("Show the way out on the map", systemImage: "figure.walk")
                 }
                 .buttonStyle(.bordered)
             }
@@ -173,7 +173,7 @@ struct VerdictBanner: View {
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Spot fumeur le plus proche")
+                        Text("Nearest smoking spot")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(nearest.item.name)
@@ -184,7 +184,7 @@ struct VerdictBanner: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 4)
-                    Label("Y aller", systemImage: "arrow.triangle.turn.up.right.circle.fill")
+                    Label("Go", systemImage: "arrow.triangle.turn.up.right.circle.fill")
                         .labelStyle(.iconOnly)
                         .font(.title)
                 }
@@ -192,8 +192,8 @@ struct VerdictBanner: View {
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Spot fumeur le plus proche : \(nearest.item.name), \(Format.spokenWalking(nearest.walking))")
-            .accessibilityHint("Affiche l'itinéraire à pied")
+            .accessibilityLabel("Nearest smoking spot: \(nearest.item.name), \(Format.spokenWalking(nearest.walking))")
+            .accessibilityHint("Shows the walking route")
         }
     }
 

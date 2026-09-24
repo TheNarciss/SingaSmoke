@@ -156,8 +156,8 @@ final class FormatTests: XCTestCase {
         XCTAssertEqual(Format.distance(43), "45 m")
         XCTAssertEqual(Format.distance(349), "350 m")
         XCTAssertEqual(Format.distance(944), "940 m")
-        XCTAssertEqual(Format.distance(960), "1,0 km")
-        XCTAssertEqual(Format.distance(1234), "1,2 km")
+        XCTAssertEqual(Format.distance(960), "1.0 km")
+        XCTAssertEqual(Format.distance(1234), "1.2 km")
         XCTAssertEqual(Format.distance(9_960), "10 km")
         XCTAssertEqual(Format.distance(12_345), "12 km")
         XCTAssertEqual(Format.distance(.infinity), "—")
@@ -166,20 +166,25 @@ final class FormatTests: XCTestCase {
     func testDuration() {
         XCTAssertEqual(Format.duration(20), "< 1 min")
         XCTAssertEqual(Format.duration(300), "5 min")
-        XCTAssertEqual(Format.duration(3_900), "1 h 05")
-        XCTAssertEqual(Format.duration(4_500), "1 h 15")
+        XCTAssertEqual(Format.duration(3_600), "1 h")
+        XCTAssertEqual(Format.duration(3_900), "1 h 5 min")
+        XCTAssertEqual(Format.duration(4_500), "1 h 15 min")
     }
 
     func testWalking() {
-        XCTAssertEqual(Format.walking(WalkingDistance(meters: 350, seconds: 300, isEstimate: false)), "350 m · 5 min à pied")
-        XCTAssertEqual(Format.walking(WalkingDistance(meters: 350, seconds: 300, isEstimate: true)), "≈ 350 m · 5 min à pied")
+        XCTAssertEqual(Format.walking(WalkingDistance(meters: 350, seconds: 300, isEstimate: false)), "350 m · 5 min walk")
+        XCTAssertEqual(Format.walking(WalkingDistance(meters: 350, seconds: 300, isEstimate: true)), "≈ 350 m · 5 min walk")
         XCTAssertEqual(Format.spokenWalking(WalkingDistance(meters: 1_234, seconds: 900, isEstimate: true)),
-                       "1 virgule 2 kilomètres, 15 minutes à pied, estimation")
+                       "1.2 kilometres, 15 minutes on foot, estimated")
+        XCTAssertEqual(Format.spokenWalking(WalkingDistance(meters: 42, seconds: 40, isEstimate: false)),
+                       "40 metres, 1 minute on foot")
     }
 
     func testDate() {
-        XCTAssertEqual(Format.date("2026-09-19"), "19/09/2026")
+        XCTAssertEqual(Format.date("2026-09-19"), "19 Sep 2026")
+        XCTAssertEqual(Format.date("2025-03-05T12:00:00"), "5 Mar 2025")
         XCTAssertNil(Format.date(nil))
         XCTAssertNil(Format.date("2026"))
+        XCTAssertNil(Format.date("2026-13-01"))
     }
 }

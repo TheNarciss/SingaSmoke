@@ -12,29 +12,29 @@ struct AboutTab: View {
                 Section {
                     Text(Legal.signage)
                         .font(.headline)
-                    Text("Les données peuvent être périmées : un spot peut avoir disparu, une zone avoir changé. SingaSmoke aide à s'orienter, il ne remplace pas les panneaux.")
-                    Button("Relire l'avertissement") { showDisclaimer = true }
+                    Text("The data can be out of date: a spot may be gone, a zone may have changed. SingaSmoke helps you find your way; it doesn't replace the signs.")
+                    Button("Read the warning again") { showDisclaimer = true }
                 } header: {
-                    Text("Avant tout")
+                    Text("First things first")
                 }
 
-                Section("Le bandeau") {
-                    legendRow("nosign", .red, "Zone interdite", "Tu es dans un lieu non-fumeur connu. L'app indique la sortie et le spot le plus proche.")
-                    legendRow("exclamationmark.triangle.fill", .orange, "Limite de zone", "Une zone commence dans la marge d'erreur de ton GPS.")
-                    legendRow("checkmark.circle.fill", .green, "Zone fumeur", "Tu es sur un carré jaune NEA ou un coin fumeur signalé.")
-                    legendRow("checkmark.circle", .teal, "Zone OK", "Aucune interdiction connue ici. En plein air, hors abri, loin des entrées : en principe autorisé.")
+                Section("The banner") {
+                    legendRow("nosign", .red, "No-smoking zone", "You're in a known no-smoking place. The app shows the way out and the nearest spot.")
+                    legendRow("exclamationmark.triangle.fill", .orange, "Edge of a zone", "A no-smoking zone starts within your GPS margin of error.")
+                    legendRow("checkmark.circle.fill", .green, "Smoking area", "You're at an NEA yellow box or a reported smoking corner.")
+                    legendRow("checkmark.circle", .teal, "Zone OK", "No known restriction here. Outdoors, not under a shelter, away from entrances: generally allowed.")
                 }
 
                 Section {
-                    reliabilityRow(.official, "NEA : carrés jaunes d'Orchard Road, zone non-fumeur d'Orchard, hawker centres.")
-                    reliabilityRow(.official, "NParks : parcs et jardins non-fumeurs.")
-                    reliabilityRow(.official, "Changi Airport Group : zones fumeurs de l'aéroport. Décrites en mots, donc placées à la porte citée ou au terminal : position approximative.")
-                    reliabilityRow(.official, "HSA : registre des points de vente. Position au bâtiment du code postal.")
-                    reliabilityRow(.indicative, "OpenStreetMap : coins fumeurs, arrêts de bus, aires de jeux, terrains, écoles, hôpitaux… Complet par endroits, lacunaire ailleurs.")
+                    reliabilityRow(.official, "NEA: the yellow boxes of Orchard Road, the Orchard no-smoking zone, hawker centres.")
+                    reliabilityRow(.official, "NParks: smoke-free parks and gardens.")
+                    reliabilityRow(.official, "Changi Airport Group: the airport's smoking areas. Described in words, so pinned at the gate they mention or at the terminal: approximate position.")
+                    reliabilityRow(.official, "HSA: the register of licensed retailers. Located to the building of the postal code.")
+                    reliabilityRow(.indicative, "OpenStreetMap: smoking corners, bus stops, playgrounds, courts, schools, hospitals… Thorough in places, patchy in others.")
                 } header: {
-                    Text("Fiabilité des sources")
+                    Text("How reliable each source is")
                 } footer: {
-                    Text("Sur la carte, les zones officielles ont un contour plein, celles d'OpenStreetMap un contour pointillé.")
+                    Text("On the map, official zones have a solid outline, OpenStreetMap ones a dashed outline.")
                 }
 
                 Section {
@@ -51,18 +51,18 @@ struct AboutTab: View {
                     Label(Legal.unmapped, systemImage: "eye.slash")
                         .font(.footnote)
                 } header: {
-                    Text("Où c'est interdit à Singapour")
+                    Text("Where smoking is banned in Singapore")
                 } footer: {
                     Text("\(Legal.fine) \(Legal.vape)")
                 }
 
-                Section("Données") {
+                Section("Data") {
                     if let meta = model.data?.meta {
-                        LabeledContent("Générées le", value: Format.date(meta.generated) ?? meta.generated)
+                        LabeledContent("Generated on", value: Format.date(meta.generated) ?? meta.generated)
                         ForEach(meta.sources) { source in
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(source.name).font(.subheadline.weight(.semibold))
-                                Text([source.publisher, Format.date(source.updated).map { "mis à jour le \($0)" }, source.licence]
+                                Text([source.publisher, Format.date(source.updated).map { "updated \($0)" }, source.licence]
                                         .compactMap { $0 }.joined(separator: " · "))
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
@@ -70,30 +70,30 @@ struct AboutTab: View {
                         }
                     }
                     if let data = model.data {
-                        LabeledContent("Spots fumeurs", value: "\(data.spots.count)")
-                        LabeledContent("Lieux non-fumeurs", value: "\(data.zones.count)")
-                        LabeledContent("Points de vente", value: "\(data.retailers.count)")
+                        LabeledContent("Smoking spots", value: "\(data.spots.count)")
+                        LabeledContent("No-smoking places", value: "\(data.zones.count)")
+                        LabeledContent("Licensed retailers", value: "\(data.retailers.count)")
                     }
                 }
 
-                Section("Vie privée") {
-                    Label("Ta position n'est utilisée que quand l'app est ouverte, sur le téléphone.", systemImage: "location")
-                    Label("Aucun compte, aucun suivi, aucune statistique, rien n'est envoyé à SingaSmoke.", systemImage: "hand.raised")
-                    Label("Le réseau sert au fond de carte et aux itinéraires d'Apple, et aux photos NEA. Le verdict et les listes marchent hors ligne.", systemImage: "wifi")
+                Section("Privacy") {
+                    Label("Your location is only used while the app is open, on your phone.", systemImage: "location")
+                    Label("No account, no tracking, no analytics: nothing is sent to SingaSmoke.", systemImage: "hand.raised")
+                    Label("The network is used for Apple's map and routes, and for NEA photos. The verdict and the lists work offline.", systemImage: "wifi")
                 }
 
                 Section {
                     Text("Contains information from the Designated Smoking Areas, No-Smoking Zones, Hawker Centres, NParks No-Smoking Locations and Listing of Licensed Tobacco Retailers datasets accessed from data.gov.sg, made available under the terms of the Singapore Open Data Licence version 1.0.")
-                    Text("© OpenStreetMap contributors, données sous licence ODbL.")
-                    Text("Géocodage : OneMap © Singapore Land Authority. Zones fumeurs de Changi : Changi Airport Group.")
-                    Text("Application non officielle, sans lien avec NEA, NParks, HSA, SLA ni Changi Airport Group. Traitement des données inspiré de smokingarea-sg (MIT).")
-                    Link("Code source sur GitHub", destination: URL(string: "https://github.com/TheNarciss/SingaSmoke")!)
+                    Text("© OpenStreetMap contributors, data under the ODbL.")
+                    Text("Geocoding: OneMap © Singapore Land Authority. Changi smoking areas: Changi Airport Group.")
+                    Text("Unofficial app, not affiliated with NEA, NParks, HSA, SLA or Changi Airport Group. Data processing inspired by smokingarea-sg (MIT).")
+                    Link("Source code on GitHub", destination: URL(string: "https://github.com/TheNarciss/SingaSmoke")!)
                 } header: {
-                    Text("Licences et attributions")
+                    Text("Licences and attributions")
                 }
                 .font(.footnote)
             }
-            .navigationTitle("Infos")
+            .navigationTitle("Info")
             .sheet(isPresented: $showDisclaimer) {
                 DisclaimerSheet(onAccept: { showDisclaimer = false })
             }
@@ -131,21 +131,21 @@ struct DisclaimerSheet: View {
                         .font(.system(size: 44))
                         .foregroundStyle(.orange)
                         .accessibilityHidden(true)
-                    Text("Avant de commencer")
+                    Text("Before you start")
                         .font(.largeTitle.weight(.bold))
                         .accessibilityAddTraits(.isHeader)
                     point("signpost.right.fill", Legal.signage)
-                    point("clock.arrow.circlepath", "Les données viennent de sources publiques (NEA, NParks, HSA, Changi Airport, OpenStreetMap) et peuvent être périmées ou incomplètes.")
+                    point("clock.arrow.circlepath", "The data comes from public sources (NEA, NParks, HSA, Changi Airport, OpenStreetMap) and can be out of date or incomplete.")
                     point("eye.slash", Legal.unmapped)
                     point("banknote", Legal.fine)
                     point("nosign", Legal.vape)
-                    point("location", "La localisation ne sert que quand l'app est ouverte. Rien n'est collecté ni envoyé.")
+                    point("location", "Your location is only used while the app is open. Nothing is collected or sent.")
                 }
                 .padding(24)
             }
             .safeAreaInset(edge: .bottom) {
                 Button(action: onAccept) {
-                    Text("J'ai compris")
+                    Text("Got it")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
