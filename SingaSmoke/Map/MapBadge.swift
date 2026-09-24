@@ -60,10 +60,11 @@ enum MapBadge {
         image(symbol: retailer.category.symbol, fill: retailer.category.uiColor, diameter: 26)
     }
 
-    static func cluster(count: Int) -> UIImage {
+    /// A group of markers when zoomed out: green for smoking spots, ink for shops.
+    static func cluster(count: Int, fill: UIColor) -> UIImage {
         let label = count > 999 ? "1k+" : "\(count)"
         let diameter: CGFloat = count < 10 ? 32 : count < 100 ? 38 : 44
-        return image(text: label, fill: UIColor(white: 0.08, alpha: 1), diameter: diameter)
+        return image(text: label, fill: fill, diameter: diameter)
     }
 
     static func exit() -> UIImage {
@@ -71,8 +72,11 @@ enum MapBadge {
     }
 
     static func destination() -> UIImage {
-        image(symbol: "flag.checkered", fill: UIColor(white: 0.08, alpha: 1), diameter: 36)
+        image(symbol: "flag.checkered", fill: ink, diameter: 36)
     }
+
+    /// Near-black of the shop clusters and the destination flag.
+    static let ink = UIColor(white: 0.08, alpha: 1)
 }
 
 /// Map marker view showing a `MapBadge` image, centred on its coordinate.

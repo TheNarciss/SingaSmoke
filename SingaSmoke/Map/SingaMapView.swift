@@ -206,8 +206,8 @@ struct SingaMapView: UIViewRepresentable {
             case let spot as SpotAnnotation:
                 let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.spotID, for: spot)
                 view.image = MapBadge.spot(spot.spot)
-                view.displayPriority = spot.spot.reliability == .official ? .required : .defaultHigh
-                view.clusteringIdentifier = nil
+                view.displayPriority = spot.spot.reliability == .official ? .defaultHigh : .defaultLow
+                view.clusteringIdentifier = Self.spotID   // Orchard's yellow boxes merge when zoomed out
                 view.zPriority = .max
                 view.accessibilityLabel = "\(spot.spot.name), \(spot.spot.source.label)"
                 return view
@@ -221,9 +221,12 @@ struct SingaMapView: UIViewRepresentable {
             case let cluster as MKClusterAnnotation:
                 let view = mapView.dequeueReusableAnnotationView(
                     withIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier, for: cluster)
-                view.image = MapBadge.cluster(count: cluster.memberAnnotations.count)
-                view.displayPriority = .defaultHigh
-                view.accessibilityLabel = "\(cluster.memberAnnotations.count) shops"
+                let count = cluster.memberAnnotations.count
+                let spots = cluster.memberAnnotations.first is SpotAnnotation
+                view.image = MapBadge.cluster(count: count, fill: spots ? Brand.allowedUI : MapBadge.ink)
+                view.displayPriority = spots ? .required : .defaultHigh
+                view.zPriority = spots ? .max : .defaultUnselected
+                view.accessibilityLabel = spots ? "\(count) smoking spots" : "\(count) shops"
                 return view
             case let marker as MarkerAnnotation:
                 let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.markerID, for: marker)
