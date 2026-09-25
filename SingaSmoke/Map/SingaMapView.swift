@@ -207,7 +207,12 @@ struct SingaMapView: UIViewRepresentable {
             guard !centeredOnUser, !parent.followsHeading, let location = userLocation.location,
                   Geo.singapore.contains(Coordinate(location.coordinate)) else { return }
             centeredOnUser = true
-            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 750, longitudinalMeters: 750),
+            var span: CLLocationDistance = 750
+            #if DEBUG
+            let screenshotSpan = UserDefaults.standard.double(forKey: "uiSpanMeters")   // CI screenshots
+            if screenshotSpan > 0 { span = screenshotSpan }
+            #endif
+            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: span, longitudinalMeters: span),
                               animated: true)
         }
 
@@ -260,8 +265,10 @@ struct SingaMapView: UIViewRepresentable {
                 renderer.strokeColor = Brand.dangerUI.withAlphaComponent(zone.isOfficial ? 0.95 : 0.7)
                 switch zone.detail {
                 case .island:
+                    // No stroke at all: even a zero-width one is drawn as a hairline, and at this zoom
+                    // hundreds of small parks would turn into solid red dots.
                     renderer.fillColor = Brand.dangerUI.withAlphaComponent(0.16)
-                    renderer.lineWidth = 0
+                    renderer.strokeColor = nil
                 case .district:
                     renderer.lineWidth = zone.isOfficial ? 1.2 : 1
                     if !zone.isOfficial { renderer.lineDashPattern = [4, 3] }
