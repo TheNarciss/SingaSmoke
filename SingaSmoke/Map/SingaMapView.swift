@@ -47,8 +47,14 @@ struct SingaMapView: UIViewRepresentable {
         map.setRegion(Self.singapore, animated: false)
         map.setCameraBoundary(MKMapView.CameraBoundary(coordinateRegion: MKCoordinateRegion(
             center: Self.singapore.center, latitudinalMeters: 70_000, longitudinalMeters: 90_000)), animated: false)
-        map.setCameraZoomRange(MKMapView.CameraZoomRange(maxCenterCoordinateDistance: 120_000), animated: false)
-        if followsHeading { map.setUserTrackingMode(.followWithHeading, animated: false) }
+        if followsHeading {
+            // Walking guidance stays at street level, whatever zoom the tracking mode would pick.
+            map.setCameraZoomRange(MKMapView.CameraZoomRange(minCenterCoordinateDistance: 150, maxCenterCoordinateDistance: 1_500),
+                                   animated: false)
+            map.setUserTrackingMode(.followWithHeading, animated: false)
+        } else {
+            map.setCameraZoomRange(MKMapView.CameraZoomRange(maxCenterCoordinateDistance: 120_000), animated: false)
+        }
         return map
     }
 
@@ -141,20 +147,20 @@ struct SingaMapView: UIViewRepresentable {
             shownRoute = parent.route
         }
 
-        /// Large zones (parks, Orchard, schools…) at every zoom; small ones (bus stops,
-        /// playgrounds, courts…) only once zoomed in, where they are readable.
+        /// More zones as the map zooms in (see `ZoneDetail`): small ones (bus stops, playgrounds,
+        /// courts…) only at street level, where they are readable.
         private func refreshZones(_ map: MKMapView) {
             guard let index = parent.zoneIndex else {
                 if !zoneOverlays.isEmpty { map.removeOverlays(zoneOverlays); zoneOverlays = [] }
                 return
             }
             let region = map.region
-            let showSmall = region.span.latitudeDelta < 0.03
-            var visible = index.zones(in: BoundingBox(region, padding: 0.25))
-            if !showSmall { visible = visible.filter { $0.kind.isLarge } }
+            let detail = ZoneDetail(latitudeDelta: region.span.latitudeDelta)
+            var visible = index.zones(in: BoundingBox(region, padding: 0.25)).filter(detail.shows)
             if visible.count > 6_000 { visible = Array(visible.prefix(6_000)) }
 
             var hasher = Hasher()
+            hasher.combine(detail)
             for zone in visible { hasher.combine(zone.id) }
             let signature = hasher.finalize()
             guard signature != zoneSignature else { return }
@@ -176,10 +182,13 @@ struct SingaMapView: UIViewRepresentable {
             if !indicative.isEmpty {
                 let overlay = ZoneOverlay(indicative)
                 overlay.isOfficial = false
+                overlay.detail = detail
                 overlays.append(overlay)
             }
             if !official.isEmpty {
-                overlays.append(ZoneOverlay(official))
+                let overlay = ZoneOverlay(official)
+                overlay.detail = detail
+                overlays.append(overlay)
             }
             map.removeOverlays(zoneOverlays)
             map.addOverlays(overlays, level: .aboveRoads)
@@ -194,14 +203,12 @@ struct SingaMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
-            // First fix in Singapore: zoom onto the user, once. Street level for the map, closer when walking.
-            guard !centeredOnUser, let location = userLocation.location,
+            // First fix in Singapore: zoom onto the user, once, at street level.
+            guard !centeredOnUser, !parent.followsHeading, let location = userLocation.location,
                   Geo.singapore.contains(Coordinate(location.coordinate)) else { return }
             centeredOnUser = true
-            let span: CLLocationDistance = parent.followsHeading ? 450 : 750
-            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: span, longitudinalMeters: span),
-                              animated: !parent.followsHeading)
-            if parent.followsHeading { mapView.setUserTrackingMode(.followWithHeading, animated: true) }
+            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 750, longitudinalMeters: 750),
+                              animated: true)
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -251,8 +258,17 @@ struct SingaMapView: UIViewRepresentable {
                 let renderer = MKMultiPolygonRenderer(multiPolygon: zone)
                 renderer.fillColor = Brand.dangerUI.withAlphaComponent(zone.isOfficial ? 0.20 : 0.12)
                 renderer.strokeColor = Brand.dangerUI.withAlphaComponent(zone.isOfficial ? 0.95 : 0.7)
-                renderer.lineWidth = zone.isOfficial ? 2 : 1.5
-                if !zone.isOfficial { renderer.lineDashPattern = [5, 4] }
+                switch zone.detail {
+                case .island:
+                    renderer.fillColor = Brand.dangerUI.withAlphaComponent(0.16)
+                    renderer.lineWidth = 0
+                case .district:
+                    renderer.lineWidth = zone.isOfficial ? 1.2 : 1
+                    if !zone.isOfficial { renderer.lineDashPattern = [4, 3] }
+                case .street:
+                    renderer.lineWidth = zone.isOfficial ? 2 : 1.5
+                    if !zone.isOfficial { renderer.lineDashPattern = [5, 4] }
+                }
                 return renderer
             }
             if let line = overlay as? MKPolyline {

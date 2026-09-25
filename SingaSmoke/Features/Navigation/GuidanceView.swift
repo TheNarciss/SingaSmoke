@@ -224,10 +224,10 @@ struct GuidanceView: View {
     static func maneuverSymbol(_ instruction: String?) -> String {
         guard let instruction else { return "flag.checkered" }
         let words = Set(instruction.lowercased().split { !$0.isLetter }.map(String.init))
+        if !words.isDisjoint(with: ["arrive", "arrived", "destination"]) { return "flag.checkered" }
         let gentle = !words.isDisjoint(with: ["slight", "slightly", "keep", "bear"])
         if words.contains("left") { return gentle ? "arrow.up.left" : "arrow.turn.up.left" }
         if words.contains("right") { return gentle ? "arrow.up.right" : "arrow.turn.up.right" }
-        if words.contains("arrive") || words.contains("destination") { return "flag.checkered" }
         if words.contains("stairs") || words.contains("steps") { return "figure.stairs" }
         return "arrow.up"
     }
