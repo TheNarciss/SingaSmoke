@@ -7,7 +7,7 @@ App iPhone qui répond en quelques secondes à deux questions, partout à Singap
 
 Plus un mode **Buy** : les ~4 200 points de vente de tabac sous licence HSA, filtrables par type (convenience store, supermarket, minimart, petrol station, kopitiam, other).
 
-Un seul écran, la carte d'abord, dans l'esprit des apps de trottinettes comme Lime : fond de carte sobre, zones interdites en rouge, pastilles vertes pour les spots, carte de statut en haut, cartes des spots les plus proches à faire défiler en bas, sélecteur Smoke / Buy.
+Un seul écran, la carte d'abord, dans l'esprit des apps de trottinettes comme Lime : fond de carte sobre, zones interdites en rouge, pastilles vertes pour les spots, carte de statut en haut, cartes des spots les plus proches à faire défiler en bas, sélecteur Smoke / Buy. Dès qu'on fait glisser ou qu'on pince la carte, les cartes du haut et du bas se réduisent en petites pastilles (un tap les rappelle) ; le bouton plein écran les masque ou les rappelle toutes les deux.
 
 Pas de compte, pas de serveur, pas de clé API, aucun suivi. iPhone uniquement, iOS 17 minimum, interface en anglais, clair et sombre, VoiceOver et tailles de texte dynamiques.
 

@@ -28,6 +28,10 @@ xcrun simctl privacy "$UDID" grant location "$BUNDLE_ID"
 xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 \
   --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
 
+# Passed to every launch: the appearance is also forced inside the app, as the simulator's own
+# switch does not always reach it.
+APPEARANCE_ARGS=""
+
 # shoot NAME LAT,LON SECONDS [launch arguments…]   (FIRST_LAUNCH=1: keep the first-launch warning)
 shoot() {
   local name=$1 place=$2 wait=$3
@@ -37,7 +41,7 @@ shoot() {
   xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
   xcrun simctl location "$UDID" set "$place"
   # shellcheck disable=SC2086
-  xcrun simctl launch "$UDID" "$BUNDLE_ID" $skip "$@" >/dev/null
+  xcrun simctl launch "$UDID" "$BUNDLE_ID" $skip $APPEARANCE_ARGS "$@" >/dev/null
   sleep "$wait"
   xcrun simctl io "$UDID" screenshot "$OUT/$name.png" >/dev/null 2>&1
   echo "✓ $name"
@@ -48,8 +52,17 @@ GARDENS=1.31380,103.81590   # Singapore Botanic Gardens: smoke-free park
 JURONG=1.33330,103.74220    # Jurong East: ordinary streets, bus stops, shops
 ABROAD=3.13900,101.68690    # Kuala Lumpur: outside Singapore, the map stays on the whole island
 
-xcrun simctl ui "$UDID" appearance light
+# The appearance switch can take a moment to reach running services: wait, then check it.
+appearance() {
+  xcrun simctl ui "$UDID" appearance "$1"
+  APPEARANCE_ARGS="-uiAppearance $1"
+  sleep 3
+  echo "Appearance: $(xcrun simctl ui "$UDID" appearance)"
+}
+
+appearance light
 shoot 01-orchard "$ORCHARD" 15
+shoot 01b-orchard-minimized "$ORCHARD" 14 -uiMinimize YES
 shoot 02-botanic-gardens "$GARDENS" 12
 shoot 03-jurong-east "$JURONG" 12
 shoot 04-spot-sheet "$ORCHARD" 14 -uiOpenFirstSpot YES
@@ -60,9 +73,10 @@ shoot 08-whole-island "$ABROAD" 12
 shoot 08b-district "$JURONG" 12 -uiSpanMeters 3000   # ~3 km wide, ~6.5 km tall
 shoot 09-about "$JURONG" 12 -uiShowInfo YES
 FIRST_LAUNCH=1 shoot 10-first-launch "$JURONG" 8
-xcrun simctl ui "$UDID" appearance dark
+appearance dark
 shoot 11-orchard-dark "$ORCHARD" 14
 shoot 12-buy-dark "$JURONG" 12 -uiMode buy
+shoot 12b-buy-minimized-dark "$JURONG" 12 -uiMode buy -uiMinimize YES
 shoot 13-spot-sheet-dark "$JURONG" 14 -uiOpenFirstSpot YES
 shoot 14-guidance-dark "$ORCHARD" 18 -uiGuideFirstSpot YES
 

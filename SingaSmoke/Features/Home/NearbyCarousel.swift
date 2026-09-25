@@ -52,6 +52,9 @@ struct NearbyCarousel: View {
         }
         .scrollTargetBehavior(.viewAligned)
         .contentMargins(.horizontal, 16, for: .scrollContent)
+        // A horizontal ScrollView is as tall as it is allowed to be: without this it swallowed the
+        // map's drags over half the screen, with the cards floating in the middle of it.
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, -18)
     }
 
@@ -94,17 +97,17 @@ struct PlaceCard: View {
     let onGo: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             Button(action: onOpen) {
                 HStack(alignment: .top, spacing: 12) {
-                    IconCircle(symbol: symbol, tint: tint, size: 46)
-                    VStack(alignment: .leading, spacing: 3) {
+                    IconCircle(symbol: symbol, tint: tint, size: 40)
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(kicker.uppercased())
                             .font(.caption2.weight(.heavy))
                             .tracking(0.6)
                             .foregroundStyle(.secondary)
                         Text(title)
-                            .font(.title3.weight(.bold))
+                            .font(.headline)
                             .lineLimit(1)
                         Text(subtitle)
                             .font(.subheadline)
@@ -136,9 +139,9 @@ struct PlaceCard: View {
                 .accessibilityLabel("Walk to \(title)")
             }
         }
-        .padding(16)
+        .padding(14)
         .containerRelativeFrame(.horizontal) { length, _ in length - 48 }
-        .card(radius: 28)
+        .card(radius: 24)
     }
 
     private var walkingChip: some View {

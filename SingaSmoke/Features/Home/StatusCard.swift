@@ -2,49 +2,109 @@ import SingaSmokeCore
 import SwiftUI
 import UIKit
 
+/// What the app says about where the user stands: an icon, a colour, a title, a line of context.
+/// Shared by the status card and its minimised pill.
+struct VerdictSummary {
+    let symbol: String
+    let tint: Color
+    let title: String
+    let subtitle: String?
+
+    init(_ verdict: Verdict, locationDenied: Bool) {
+        switch verdict {
+        case .noLocation:
+            symbol = locationDenied ? "location.slash.fill" : "location.fill"
+            tint = .gray
+            title = locationDenied ? "Location is off" : "Finding you…"
+            subtitle = locationDenied ? "Turn it on to know whether you can smoke here." : nil
+        case .outsideSingapore:
+            symbol = "globe.asia.australia.fill"
+            tint = .gray
+            title = "Outside Singapore"
+            subtitle = "Distances are measured from the centre of the map."
+        case .atSpot(let spot, let distance, _):
+            symbol = "checkmark"
+            tint = Brand.allowed
+            title = spot.reliability == .official ? "Smoking area" : "Reported smoking spot"
+            subtitle = "\(spot.name) · \(Format.distance(distance)) away"
+        case .prohibited(let hit, _, _):
+            symbol = "nosign"
+            tint = Brand.danger
+            title = hit.isCertain ? "No smoking here" : "Probably no smoking here"
+            subtitle = hit.zone.title
+        case .nearZone(let hit):
+            symbol = "exclamationmark"
+            tint = Brand.warning
+            title = "Near a no-smoking zone"
+            subtitle = "\(hit.zone.title), \(Format.distance(max(0, hit.signedDistance))) away. Your GPS can't tell for sure."
+        case .clear:
+            symbol = "hand.thumbsup.fill"
+            tint = Brand.allowed
+            title = "No known restriction"
+            subtitle = "Outdoors, away from shelters and entrances: generally fine."
+        }
+    }
+}
+
 /// "Can I smoke here?" in one glance: a coloured disc, a short verdict, a line of context.
-/// Tap to unfold the rule, the other zones around and the fine.
+/// Tap to unfold the rule, the other zones around and the fine; swipe up to minimise it.
 struct StatusCard: View {
     let verdict: Verdict
     let locationDenied: Bool
     var onShowExit: () -> Void = {}
+    var onMinimize: () -> Void = {}
 
     @State private var expanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                guard hasDetails else { return }
-                withAnimation(.snappy) { expanded.toggle() }
-            } label: {
-                HStack(alignment: .center, spacing: 12) {
-                    IconCircle(symbol: style.symbol, tint: style.tint, size: 44)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        if let subtitle {
-                            Text(subtitle)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(expanded ? nil : 2)
-                                .fixedSize(horizontal: false, vertical: true)
+        let summary = VerdictSummary(verdict, locationDenied: locationDenied)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                Button {
+                    guard hasDetails else { return }
+                    withAnimation(.snappy) { expanded.toggle() }
+                } label: {
+                    HStack(alignment: .center, spacing: 12) {
+                        IconCircle(symbol: summary.symbol, tint: summary.tint, size: 40)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(summary.title)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                if hasDetails {
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption.weight(.heavy))
+                                        .foregroundStyle(.tertiary)
+                                        .rotationEffect(.degrees(expanded ? 180 : 0))
+                                }
+                            }
+                            if let subtitle = summary.subtitle {
+                                Text(subtitle)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(expanded ? nil : 2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
+                        Spacer(minLength: 0)
                     }
-                    Spacer(minLength: 0)
-                    if hasDetails {
-                        Image(systemName: "chevron.down")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.tertiary)
-                            .rotationEffect(.degrees(expanded ? 180 : 0))
-                    }
+                    .contentShape(Rectangle())
                 }
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityHint(hasDetails ? (expanded ? "Hides the details" : "Shows the details") : "")
+
+                Button(action: onMinimize) {
+                    Image(systemName: "chevron.up")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 30, height: 30)
+                        .background(Color(.tertiarySystemFill), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Minimise the status card")
             }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityHint(hasDetails ? (expanded ? "Hides the details" : "Shows the details") : "")
 
             if case .prohibited(let hit, _, _) = verdict {
                 Button(action: onShowExit) {
@@ -75,57 +135,13 @@ struct StatusCard: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(14)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .card(radius: 26)
+        .card(radius: 24)
+        .onVerticalSwipe(.top, perform: onMinimize)
     }
 
-    // MARK: Content per verdict
-
-    private var style: (symbol: String, tint: Color) {
-        switch verdict {
-        case .noLocation: return (locationDenied ? "location.slash.fill" : "location.fill", .gray)
-        case .outsideSingapore: return ("globe.asia.australia.fill", .gray)
-        case .atSpot: return ("checkmark", Brand.allowed)
-        case .prohibited: return ("nosign", Brand.danger)
-        case .nearZone: return ("exclamationmark", Brand.warning)
-        case .clear: return ("hand.thumbsup.fill", Brand.allowed)
-        }
-    }
-
-    private var title: String {
-        switch verdict {
-        case .noLocation:
-            return locationDenied ? "Location is off" : "Finding you…"
-        case .outsideSingapore:
-            return "Outside Singapore"
-        case .atSpot(let spot, _, _):
-            return spot.reliability == .official ? "Smoking area" : "Reported smoking spot"
-        case .prohibited(let hit, _, _):
-            return hit.isCertain ? "No smoking here" : "Probably no smoking here"
-        case .nearZone:
-            return "Near a no-smoking zone"
-        case .clear:
-            return "No known restriction"
-        }
-    }
-
-    private var subtitle: String? {
-        switch verdict {
-        case .noLocation:
-            return locationDenied ? "Turn it on to know whether you can smoke here." : nil
-        case .outsideSingapore:
-            return "Distances are measured from the centre of the map."
-        case .atSpot(let spot, let distance, _):
-            return "\(spot.name) · \(Format.distance(distance)) away"
-        case .prohibited(let hit, _, _):
-            return hit.zone.title
-        case .nearZone(let hit):
-            return "\(hit.zone.title), \(Format.distance(max(0, hit.signedDistance))) away. Your GPS can't tell for sure."
-        case .clear:
-            return "Outdoors, away from shelters and entrances: generally fine."
-        }
-    }
+    // MARK: Details per verdict
 
     private var details: [String] {
         var lines: [String] = []

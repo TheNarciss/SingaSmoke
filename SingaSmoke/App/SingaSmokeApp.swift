@@ -10,8 +10,23 @@ struct SingaSmokeApp: App {
             RootView()
                 .environment(model)
                 .fontDesign(.rounded)
+                .preferredColorScheme(Self.forcedColorScheme)
                 .task { await model.load() }
         }
+    }
+
+    /// CI screenshots force the appearance with -uiAppearance dark|light (debug builds only);
+    /// otherwise the app follows the system.
+    private static var forcedColorScheme: ColorScheme? {
+        #if DEBUG
+        switch UserDefaults.standard.string(forKey: "uiAppearance") {
+        case "dark": return .dark
+        case "light": return .light
+        default: return nil
+        }
+        #else
+        return nil
+        #endif
     }
 }
 

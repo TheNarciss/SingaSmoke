@@ -36,6 +36,13 @@ struct HomeView: View {
     @State private var showExit = false
     @State private var showList = false
     @State private var showInfo = false
+    /// Cards minimised to leave the map room: the status card (or the shop filters) at the top,
+    /// the nearby cards at the bottom. Dragging or pinching the map minimises both.
+    @State private var topMinimized = false
+    @State private var bottomMinimized = false
+    /// Height of what covers the bottom-left corner (the cards or their pill): Apple's logo and
+    /// "Legal" link must stay visible above it.
+    @State private var bottomCover: CGFloat = 0
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -45,51 +52,60 @@ struct HomeView: View {
                 zoneIndex: mode == .smoke ? model.data?.zoneIndex : nil,
                 marker: exitMarker,
                 recenterToken: recenter,
+                attributionInset: bottomCover + 12,
                 onSelectSpot: { selectedSpot = $0 },
                 onSelectRetailer: { selectedShop = $0 },
-                onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) }
+                onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) },
+                onUserGesture: { setMinimized(true) }
             )
             .ignoresSafeArea()
             .accessibilityLabel(mode == .smoke ? "Map of smoking and no-smoking areas" : "Map of licensed tobacco retailers")
 
             VStack(spacing: 12) {
-                VStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 10) {
                         ModePicker(mode: $mode)
                         Spacer(minLength: 0)
                         FloatingButton(symbol: "info", label: "About SingaSmoke", size: 44) { showInfo = true }
                     }
-                    if mode == .smoke {
-                        StatusCard(verdict: model.verdict, locationDenied: model.location.isDenied,
-                                   onShowExit: { showExit = true; recenter += 1 })
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    } else {
-                        CategoryChips()
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
+                    topPanel
                 }
                 .padding(.horizontal, 16)
 
                 Spacer(minLength: 0)
 
-                HStack {
-                    Spacer()
+                HStack(alignment: .bottom, spacing: 12) {
+                    if bottomMinimized {
+                        nearbyPill
+                            .background(BottomCoverReader())
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    Spacer(minLength: 0)
                     VStack(spacing: 12) {
+                        FloatingButton(symbol: allMinimized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
+                                       label: allMinimized ? "Show the cards" : "Full-screen map") {
+                            setMinimized(!allMinimized)
+                        }
                         FloatingButton(symbol: "list.bullet", label: mode == .smoke ? "All smoking spots" : "All shops") { showList = true }
                         FloatingButton(symbol: "location.fill", label: "Centre on my location") { recenter += 1 }
                     }
                 }
                 .padding(.horizontal, 16)
 
-                NearbyCarousel(mode: mode,
-                               spots: Array(model.nearestSpots.prefix(8)),
-                               shops: Array(model.nearestRetailers.prefix(8)),
-                               referenceIsUser: model.referenceIsUser,
-                               onOpenSpot: { selectedSpot = $0 },
-                               onOpenShop: { selectedShop = $0 },
-                               onGo: { guidance = $0 })
+                if !bottomMinimized {
+                    NearbyCarousel(mode: mode,
+                                   spots: Array(model.nearestSpots.prefix(8)),
+                                   shops: Array(model.nearestRetailers.prefix(8)),
+                                   referenceIsUser: model.referenceIsUser,
+                                   onOpenSpot: { selectedSpot = $0 },
+                                   onOpenShop: { selectedShop = $0 },
+                                   onGo: { guidance = $0 })
+                        .background(BottomCoverReader())
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
             .padding(.bottom, 8)
+            .onPreferenceChange(BottomCoverKey.self) { bottomCover = $0 }
         }
         .animation(.snappy, value: mode)
         .sensoryFeedback(.selection, trigger: mode)
@@ -152,6 +168,72 @@ struct HomeView: View {
         #endif
     }
 
+    // MARK: Minimised cards
+
+    private var allMinimized: Bool { topMinimized && bottomMinimized }
+
+    private func setMinimized(_ minimized: Bool) {
+        guard topMinimized != minimized || bottomMinimized != minimized else { return }
+        withAnimation(.snappy) {
+            topMinimized = minimized
+            bottomMinimized = minimized
+        }
+    }
+
+    /// The status card or, in Buy mode, the shop filters; a small pill when minimised.
+    @ViewBuilder
+    private var topPanel: some View {
+        switch (mode, topMinimized) {
+        case (.smoke, false):
+            StatusCard(verdict: model.verdict, locationDenied: model.location.isDenied,
+                       onShowExit: { showExit = true; recenter += 1 },
+                       onMinimize: { withAnimation(.snappy) { topMinimized = true } })
+                .transition(.move(edge: .top).combined(with: .opacity))
+        case (.smoke, true):
+            let summary = VerdictSummary(model.verdict, locationDenied: model.location.isDenied)
+            CompactPill(symbol: summary.symbol, tint: summary.tint, title: summary.title) {
+                withAnimation(.snappy) { topMinimized = false }
+            }
+            .transition(.move(edge: .top).combined(with: .opacity))
+        case (.buy, false):
+            CategoryChips()
+                .onVerticalSwipe(.top) { withAnimation(.snappy) { topMinimized = true } }
+                .transition(.move(edge: .top).combined(with: .opacity))
+        case (.buy, true):
+            let shown = model.retailerCategories.count
+            CompactPill(symbol: "line.3.horizontal.decrease", tint: Brand.accent, title: "Shop types",
+                        detail: shown == RetailCategory.allCases.count ? "All shown" : "\(shown) of \(RetailCategory.allCases.count) shown") {
+                withAnimation(.snappy) { topMinimized = false }
+            }
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
+    }
+
+    /// The nearest place in one line, standing in for the minimised cards.
+    private var nearbyPill: some View {
+        let restore = { withAnimation(.snappy) { bottomMinimized = false } }
+        return Group {
+            switch mode {
+            case .smoke:
+                if let place = model.nearestSpots.first {
+                    CompactPill(symbol: place.item.glyph, tint: place.item.tint, title: place.item.name,
+                                detail: place.walking.chipText, chevron: "chevron.up", action: restore)
+                } else {
+                    CompactPill(symbol: "mappin.and.ellipse", tint: Brand.allowed, title: "Nearby spots",
+                                chevron: "chevron.up", action: restore)
+                }
+            case .buy:
+                if let place = model.nearestRetailers.first {
+                    CompactPill(symbol: place.item.category.symbol, tint: place.item.category.color, title: place.item.name,
+                                detail: place.walking.chipText, chevron: "chevron.up", action: restore)
+                } else {
+                    CompactPill(symbol: "bag.fill", tint: .gray, title: "Nearby shops",
+                                chevron: "chevron.up", action: restore)
+                }
+            }
+        }
+    }
+
     private func startPendingGuidance() {
         guard let pending = pendingGuidance else { return }
         pendingGuidance = nil
@@ -165,10 +247,11 @@ struct HomeView: View {
 
     #if DEBUG
     /// Launch arguments used by CI to capture screenshots:
-    /// -uiMode buy, -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
+    /// -uiMode buy, -uiMinimize YES, -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
     private func applyScreenshotArguments() async {
         let defaults = UserDefaults.standard
         if defaults.string(forKey: "uiMode") == "buy" { mode = .buy }
+        if defaults.bool(forKey: "uiMinimize") { topMinimized = true; bottomMinimized = true }
         let wanted = ["uiOpenFirstSpot", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"].filter { defaults.bool(forKey: $0) }
         guard !wanted.isEmpty else { return }
         try? await Task.sleep(for: .seconds(6))
@@ -179,6 +262,20 @@ struct HomeView: View {
         if wanted.contains("uiGuideFirstSpot"), let first { guidance = GuidanceTarget(spot: first) }
     }
     #endif
+}
+
+/// Reports the height of the view it is the background of, for `BottomCoverKey`.
+private struct BottomCoverReader: View {
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear.preference(key: BottomCoverKey.self, value: proxy.size.height)
+        }
+    }
+}
+
+private struct BottomCoverKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
 extension AppModel {
