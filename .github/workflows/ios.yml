@@ -1,6 +1,8 @@
 name: iOS
 
 # Every push and pull request: the logic's unit tests, then the app compiled for the simulator.
+# On pull requests, screenshots of the app in the simulator land on the "screenshots" branch
+# and in the run summary, to review the interface without a Mac.
 # A push to the default branch (or the "Run workflow" button) then archives, signs and uploads
 # the app to TestFlight, as soon as the signing secrets exist (docs/testflight.md). Until then the
 # TestFlight job says what is missing and stops without failing.
@@ -27,6 +29,8 @@ jobs:
     name: Tests + build (simulator)
     runs-on: macos-15
     timeout-minutes: 40
+    permissions:
+      contents: write   # the screenshots branch, on pull requests
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -53,8 +57,37 @@ jobs:
           xcodebuild build \
             -project SingaSmoke.xcodeproj -scheme SingaSmoke -configuration Debug \
             -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             | tail -n 80
+
+      - name: Screenshots in the simulator
+        id: shots
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 15
+        run: scripts/ci-screenshots.sh build/Build/Products/Debug-iphonesimulator/SingaSmoke.app "$RUNNER_TEMP/shots"
+
+      - name: Publish the screenshots
+        if: github.event_name == 'pull_request' && steps.shots.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/shots"
+          git init -q -b screenshots
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Screenshots of $HEAD_SHA"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" screenshots
+          RAW="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/screenshots"
+          {
+            echo "### Screenshots of ${HEAD_SHA:0:7}"
+            echo
+            for f in *.png; do echo "<img src=\"$RAW/$f?v=${HEAD_SHA:0:7}\" width=\"260\" alt=\"$f\">"; done
+          } >> "$GITHUB_STEP_SUMMARY"
 
   testflight:
     name: Archive, sign, upload to TestFlight

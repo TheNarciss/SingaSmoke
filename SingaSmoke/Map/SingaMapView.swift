@@ -14,6 +14,8 @@ struct SingaMapView: UIViewRepresentable {
     var followsHeading = false
     /// Incremented by the parent to recentre on the user.
     var recenterToken = 0
+    /// Height of the card covering the bottom of the map: Apple's logo and "Legal" link go above it.
+    var attributionInset: CGFloat = 0
     var onSelectSpot: (SmokingSpot) -> Void = { _ in }
     var onSelectRetailer: (Retailer) -> Void = { _ in }
     var onRegionChange: (MKCoordinateRegion) -> Void = { _ in }
@@ -28,20 +30,31 @@ struct SingaMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
+        // A quiet, desaturated basemap without points of interest, so the zones and markers carry the map.
+        let configuration = MKStandardMapConfiguration(elevationStyle: .flat, emphasisStyle: .muted)
+        configuration.pointOfInterestFilter = .excludingAll
+        configuration.showsTraffic = false
+        map.preferredConfiguration = configuration
         map.showsUserLocation = true
-        map.showsCompass = true
-        map.showsScale = true
-        map.pointOfInterestFilter = MKPointOfInterestFilter(including: [.publicTransport, .hospital, .park, .airport])
-        map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.spotID)
-        map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.retailerID)
-        map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.markerID)
-        map.register(MKMarkerAnnotationView.self,
+        map.showsCompass = false
+        map.showsScale = false
+        map.layoutMargins = UIEdgeInsets(top: 0, left: 0, bottom: attributionInset, right: 0)
+        map.register(BadgeAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.spotID)
+        map.register(BadgeAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.retailerID)
+        map.register(BadgeAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.markerID)
+        map.register(BadgeAnnotationView.self,
                      forAnnotationViewWithReuseIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier)
         map.setRegion(Self.singapore, animated: false)
         map.setCameraBoundary(MKMapView.CameraBoundary(coordinateRegion: MKCoordinateRegion(
             center: Self.singapore.center, latitudinalMeters: 70_000, longitudinalMeters: 90_000)), animated: false)
-        map.setCameraZoomRange(MKMapView.CameraZoomRange(maxCenterCoordinateDistance: 120_000), animated: false)
-        if followsHeading { map.setUserTrackingMode(.followWithHeading, animated: false) }
+        if followsHeading {
+            // Walking guidance stays at street level, whatever zoom the tracking mode would pick.
+            map.setCameraZoomRange(MKMapView.CameraZoomRange(minCenterCoordinateDistance: 150, maxCenterCoordinateDistance: 1_500),
+                                   animated: false)
+            map.setUserTrackingMode(.followWithHeading, animated: false)
+        } else {
+            map.setCameraZoomRange(MKMapView.CameraZoomRange(maxCenterCoordinateDistance: 120_000), animated: false)
+        }
         return map
     }
 
@@ -134,20 +147,20 @@ struct SingaMapView: UIViewRepresentable {
             shownRoute = parent.route
         }
 
-        /// Large zones (parks, Orchard, schools…) at every zoom; small ones (bus stops,
-        /// playgrounds, courts…) only once zoomed in, where they are readable.
+        /// More zones as the map zooms in (see `ZoneDetail`): small ones (bus stops, playgrounds,
+        /// courts…) only at street level, where they are readable.
         private func refreshZones(_ map: MKMapView) {
             guard let index = parent.zoneIndex else {
                 if !zoneOverlays.isEmpty { map.removeOverlays(zoneOverlays); zoneOverlays = [] }
                 return
             }
             let region = map.region
-            let showSmall = region.span.latitudeDelta < 0.03
-            var visible = index.zones(in: BoundingBox(region, padding: 0.25))
-            if !showSmall { visible = visible.filter { $0.kind.isLarge } }
+            let detail = ZoneDetail(latitudeDelta: region.span.latitudeDelta)
+            var visible = index.zones(in: BoundingBox(region, padding: 0.25)).filter(detail.shows)
             if visible.count > 6_000 { visible = Array(visible.prefix(6_000)) }
 
             var hasher = Hasher()
+            hasher.combine(detail)
             for zone in visible { hasher.combine(zone.id) }
             let signature = hasher.finalize()
             guard signature != zoneSignature else { return }
@@ -169,10 +182,13 @@ struct SingaMapView: UIViewRepresentable {
             if !indicative.isEmpty {
                 let overlay = ZoneOverlay(indicative)
                 overlay.isOfficial = false
+                overlay.detail = detail
                 overlays.append(overlay)
             }
             if !official.isEmpty {
-                overlays.append(ZoneOverlay(official))
+                let overlay = ZoneOverlay(official)
+                overlay.detail = detail
+                overlays.append(overlay)
             }
             map.removeOverlays(zoneOverlays)
             map.addOverlays(overlays, level: .aboveRoads)
@@ -187,11 +203,16 @@ struct SingaMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
-            // First fix in Singapore: zoom onto the user, once.
+            // First fix in Singapore: zoom onto the user, once, at street level.
             guard !centeredOnUser, !parent.followsHeading, let location = userLocation.location,
                   Geo.singapore.contains(Coordinate(location.coordinate)) else { return }
             centeredOnUser = true
-            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 900, longitudinalMeters: 900),
+            var span: CLLocationDistance = 750
+            #if DEBUG
+            let screenshotSpan = UserDefaults.standard.double(forKey: "uiSpanMeters")   // CI screenshots
+            if screenshotSpan > 0 { span = screenshotSpan }
+            #endif
+            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: span, longitudinalMeters: span),
                               animated: true)
         }
 
@@ -200,40 +221,37 @@ struct SingaMapView: UIViewRepresentable {
             case is MKUserLocation:
                 return nil
             case let spot as SpotAnnotation:
-                let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.spotID, for: spot) as! MKMarkerAnnotationView
-                let official = spot.spot.reliability == .official
-                view.markerTintColor = official ? .systemGreen : UIColor.systemGreen.withAlphaComponent(0.55)
-                view.glyphImage = UIImage(systemName: spot.spot.glyph)
-                view.displayPriority = official ? .required : .defaultHigh
-                view.clusteringIdentifier = nil
-                view.titleVisibility = .adaptive
-                view.subtitleVisibility = .hidden
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.spotID, for: spot)
+                view.image = MapBadge.spot(spot.spot)
+                view.displayPriority = spot.spot.reliability == .official ? .defaultHigh : .defaultLow
+                view.clusteringIdentifier = Self.spotID   // Orchard's yellow boxes merge when zoomed out
+                view.zPriority = .max
                 view.accessibilityLabel = "\(spot.spot.name), \(spot.spot.source.label)"
                 return view
             case let shop as RetailerAnnotation:
-                let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.retailerID, for: shop) as! MKMarkerAnnotationView
-                view.markerTintColor = shop.retailer.category.uiColor
-                view.glyphImage = UIImage(systemName: shop.retailer.category.symbol)
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.retailerID, for: shop)
+                view.image = MapBadge.retailer(shop.retailer)
                 view.clusteringIdentifier = "retailer"
                 view.displayPriority = .defaultLow
-                view.titleVisibility = .adaptive
-                view.subtitleVisibility = .hidden
                 view.accessibilityLabel = "\(shop.retailer.name), \(shop.retailer.category.label)"
                 return view
             case let cluster as MKClusterAnnotation:
                 let view = mapView.dequeueReusableAnnotationView(
-                    withIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier, for: cluster) as! MKMarkerAnnotationView
-                view.markerTintColor = .systemIndigo
-                view.glyphText = "\(cluster.memberAnnotations.count)"
-                view.displayPriority = .defaultHigh
-                view.accessibilityLabel = "\(cluster.memberAnnotations.count) shops"
+                    withIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier, for: cluster)
+                let count = cluster.memberAnnotations.count
+                let spots = cluster.memberAnnotations.first is SpotAnnotation
+                view.image = MapBadge.cluster(count: count, fill: spots ? Brand.allowedUI : MapBadge.ink)
+                view.displayPriority = spots ? .required : .defaultHigh
+                view.zPriority = spots ? .max : .defaultUnselected
+                view.accessibilityLabel = spots ? "\(count) smoking spots" : "\(count) shops"
                 return view
             case let marker as MarkerAnnotation:
-                let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.markerID, for: marker) as! MKMarkerAnnotationView
-                view.markerTintColor = marker.style == .exit ? .systemOrange : .systemGreen
-                view.glyphImage = UIImage(systemName: marker.style == .exit ? "figure.walk" : "flag.checkered")
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.markerID, for: marker)
+                view.image = marker.style == .exit ? MapBadge.exit() : MapBadge.destination()
                 view.displayPriority = .required
                 view.clusteringIdentifier = nil
+                view.zPriority = .max
+                view.accessibilityLabel = marker.title
                 return view
             default:
                 return nil
@@ -243,16 +261,27 @@ struct SingaMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let zone = overlay as? ZoneOverlay {
                 let renderer = MKMultiPolygonRenderer(multiPolygon: zone)
-                renderer.fillColor = UIColor.systemRed.withAlphaComponent(zone.isOfficial ? 0.22 : 0.13)
-                renderer.strokeColor = UIColor.systemRed.withAlphaComponent(zone.isOfficial ? 0.85 : 0.6)
-                renderer.lineWidth = zone.isOfficial ? 1.5 : 1
-                if !zone.isOfficial { renderer.lineDashPattern = [4, 3] }
+                renderer.fillColor = Brand.dangerUI.withAlphaComponent(zone.isOfficial ? 0.20 : 0.12)
+                renderer.strokeColor = Brand.dangerUI.withAlphaComponent(zone.isOfficial ? 0.95 : 0.7)
+                switch zone.detail {
+                case .island:
+                    // No stroke at all: even a zero-width one is drawn as a hairline, and at this zoom
+                    // hundreds of small parks would turn into solid red dots.
+                    renderer.fillColor = Brand.dangerUI.withAlphaComponent(0.16)
+                    renderer.strokeColor = nil
+                case .district:
+                    renderer.lineWidth = zone.isOfficial ? 1.2 : 1
+                    if !zone.isOfficial { renderer.lineDashPattern = [4, 3] }
+                case .street:
+                    renderer.lineWidth = zone.isOfficial ? 2 : 1.5
+                    if !zone.isOfficial { renderer.lineDashPattern = [5, 4] }
+                }
                 return renderer
             }
             if let line = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: line)
-                renderer.strokeColor = .systemBlue
-                renderer.lineWidth = 6
+                renderer.strokeColor = Brand.allowedUI
+                renderer.lineWidth = 7
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
                 return renderer

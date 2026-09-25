@@ -1,0 +1,222 @@
+import MapKit
+import SingaSmokeCore
+import SwiftUI
+
+enum AppMode: String, CaseIterable, Identifiable {
+    case smoke
+    case buy
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .smoke: return "Smoke"
+        case .buy: return "Buy"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .smoke: return "smoke.fill"
+        case .buy: return "bag.fill"
+        }
+    }
+}
+
+/// One screen, map first: where you can smoke (or buy), what the rule is here, and the nearest options.
+struct HomeView: View {
+    @Environment(AppModel.self) private var model
+    @State private var mode: AppMode = .smoke
+    @State private var selectedSpot: SmokingSpot?
+    @State private var selectedShop: Retailer?
+    @State private var guidance: GuidanceTarget?
+    /// Guidance asked from a sheet: shown once the sheet is gone (two modals cannot overlap).
+    @State private var pendingGuidance: GuidanceTarget?
+    @State private var recenter = 0
+    @State private var showExit = false
+    @State private var showList = false
+    @State private var showInfo = false
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            SingaMapView(
+                spots: mode == .smoke ? (model.data?.spots ?? []) : [],
+                retailers: mode == .buy ? model.filteredRetailers : [],
+                zoneIndex: mode == .smoke ? model.data?.zoneIndex : nil,
+                marker: exitMarker,
+                recenterToken: recenter,
+                onSelectSpot: { selectedSpot = $0 },
+                onSelectRetailer: { selectedShop = $0 },
+                onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) }
+            )
+            .ignoresSafeArea()
+            .accessibilityLabel(mode == .smoke ? "Map of smoking and no-smoking areas" : "Map of licensed tobacco retailers")
+
+            VStack(spacing: 12) {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        ModePicker(mode: $mode)
+                        Spacer(minLength: 0)
+                        FloatingButton(symbol: "info", label: "About SingaSmoke", size: 44) { showInfo = true }
+                    }
+                    if mode == .smoke {
+                        StatusCard(verdict: model.verdict, locationDenied: model.location.isDenied,
+                                   onShowExit: { showExit = true; recenter += 1 })
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    } else {
+                        CategoryChips()
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                Spacer(minLength: 0)
+
+                HStack {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        FloatingButton(symbol: "list.bullet", label: mode == .smoke ? "All smoking spots" : "All shops") { showList = true }
+                        FloatingButton(symbol: "location.fill", label: "Centre on my location") { recenter += 1 }
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                NearbyCarousel(mode: mode,
+                               spots: Array(model.nearestSpots.prefix(8)),
+                               shops: Array(model.nearestRetailers.prefix(8)),
+                               referenceIsUser: model.referenceIsUser,
+                               onOpenSpot: { selectedSpot = $0 },
+                               onOpenShop: { selectedShop = $0 },
+                               onGo: { guidance = $0 })
+            }
+            .padding(.bottom, 8)
+        }
+        .animation(.snappy, value: mode)
+        .sensoryFeedback(.selection, trigger: mode)
+        .sheet(item: $selectedSpot, onDismiss: startPendingGuidance) { spot in
+            SpotDetailView(spot: spot, onGo: {
+                pendingGuidance = GuidanceTarget(spot: spot)
+                selectedSpot = nil
+            })
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(32)
+            .presentationBackground(Brand.sheet)
+            .environment(model)
+        }
+        .sheet(item: $selectedShop, onDismiss: startPendingGuidance) { shop in
+            RetailerDetailView(retailer: shop, onGo: {
+                pendingGuidance = GuidanceTarget(retailer: shop)
+                selectedShop = nil
+            })
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(32)
+            .presentationBackground(Brand.sheet)
+            .environment(model)
+        }
+        .sheet(isPresented: $showList, onDismiss: startPendingGuidance) {
+            NavigationStack {
+                if mode == .smoke {
+                    SpotListView(onGo: { spot in
+                        pendingGuidance = GuidanceTarget(spot: spot)
+                        showList = false
+                    })
+                } else {
+                    RetailerListView(onGo: { shop in
+                        pendingGuidance = GuidanceTarget(retailer: shop)
+                        showList = false
+                    })
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationCornerRadius(32)
+            .presentationBackground(Brand.groupedSheet)
+            .environment(model)
+        }
+        .sheet(isPresented: $showInfo) {
+            InfoView()
+                .presentationCornerRadius(32)
+                .presentationBackground(Brand.groupedSheet)
+                .environment(model)
+        }
+        .fullScreenCover(item: $guidance) { target in
+            GuidanceView(target: target)
+                .environment(model)
+        }
+        .onChange(of: model.verdictIsProhibited) { _, prohibited in
+            if !prohibited { showExit = false }
+        }
+        #if DEBUG
+        .task { await applyScreenshotArguments() }
+        #endif
+    }
+
+    private func startPendingGuidance() {
+        guard let pending = pendingGuidance else { return }
+        pendingGuidance = nil
+        guidance = pending
+    }
+
+    private var exitMarker: MarkerAnnotation? {
+        guard showExit, case .prohibited(let hit, _, _) = model.verdict else { return nil }
+        return MarkerAnnotation(.exit, coordinate: hit.exit, title: "Way out of the zone")
+    }
+
+    #if DEBUG
+    /// Launch arguments used by CI to capture screenshots:
+    /// -uiMode buy, -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
+    private func applyScreenshotArguments() async {
+        let defaults = UserDefaults.standard
+        if defaults.string(forKey: "uiMode") == "buy" { mode = .buy }
+        let wanted = ["uiOpenFirstSpot", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"].filter { defaults.bool(forKey: $0) }
+        guard !wanted.isEmpty else { return }
+        try? await Task.sleep(for: .seconds(6))
+        let first = model.nearestSpots.first?.item
+        if wanted.contains("uiOpenFirstSpot") { selectedSpot = first }
+        if wanted.contains("uiShowList") { showList = true }
+        if wanted.contains("uiShowInfo") { showInfo = true }
+        if wanted.contains("uiGuideFirstSpot"), let first { guidance = GuidanceTarget(spot: first) }
+    }
+    #endif
+}
+
+extension AppModel {
+    var verdictIsProhibited: Bool {
+        if case .prohibited = verdict { return true }
+        return false
+    }
+}
+
+/// Smoke / Buy, as a capsule with a sliding black pill.
+struct ModePicker: View {
+    @Binding var mode: AppMode
+    @Namespace private var pill
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(AppMode.allCases) { item in
+                let on = item == mode
+                Button {
+                    mode = item
+                } label: {
+                    Label(item.title, systemImage: item.symbol)
+                        .font(.subheadline.weight(.bold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 11)
+                        .foregroundStyle(on ? Brand.onInk : .primary)
+                        .background {
+                            if on {
+                                Capsule().fill(Brand.ink).matchedGeometryEffect(id: "pill", in: pill)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .background(Brand.card, in: Capsule())
+        .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
+    }
+}

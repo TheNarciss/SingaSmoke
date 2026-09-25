@@ -36,7 +36,7 @@ public enum SpotSource: String, Sendable, CaseIterable {
         switch self {
         case .nea: return "NEA designated smoking area"
         case .changi: return "Changi Airport smoking area"
-        case .osmArea: return "Smoking area (OpenStreetMap)"
+        case .osmArea: return "Reported on OpenStreetMap"
         case .osmVenue: return "Venue with a smoking corner (OpenStreetMap)"
         }
     }
@@ -225,9 +225,11 @@ public struct NoSmokingZone: Identifiable, Sendable {
     public var reliability: Reliability { source.reliability }
 
     /// "Park or garden", or "Park or garden · Bishan-Ang Mo Kio Park" when the zone has a name.
+    /// A name that already says what the place is ("Orchard Road No-Smoking Zone") stands alone.
     public var title: String {
-        if let name, !name.isEmpty { return "\(kind.label) · \(name)" }
-        return kind.label
+        guard let name, !name.isEmpty else { return kind.label }
+        if name.lowercased().contains(kind.label.lowercased()) { return name }
+        return "\(kind.label) · \(name)"
     }
 
     /// Metres from `p` to the edge of the prohibited area: negative inside, positive outside.

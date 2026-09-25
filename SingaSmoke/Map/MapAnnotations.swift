@@ -42,9 +42,32 @@ final class MarkerAnnotation: NSObject, MKAnnotation {
     }
 }
 
+/// How much of the no-smoking map is drawn, by zoom: the whole island in red would say nothing.
+enum ZoneDetail: Hashable {
+    /// Whole island: the Orchard zone and the NParks parks, as soft fills without outlines.
+    case island
+    /// A district: the large places (parks, schools, hospitals…), thin outlines.
+    case district
+    /// A few streets: everything, down to bus stops and playgrounds.
+    case street
+
+    init(latitudeDelta: Double) {
+        self = latitudeDelta >= 0.1 ? .island : latitudeDelta >= 0.03 ? .district : .street
+    }
+
+    func shows(_ zone: NoSmokingZone) -> Bool {
+        switch self {
+        case .island: return zone.kind == .nsz || (zone.kind == .park && zone.source == .nparks)
+        case .district: return zone.kind.isLarge
+        case .street: return true
+        }
+    }
+}
+
 /// Every no-smoking polygon of one reliability level, drawn as a single overlay.
 final class ZoneOverlay: MKMultiPolygon {
     var isOfficial = true
+    var detail = ZoneDetail.street
 }
 
 enum ZoneShapes {

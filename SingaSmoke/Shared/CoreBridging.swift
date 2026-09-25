@@ -22,7 +22,7 @@ extension BoundingBox {
 }
 
 extension Reliability {
-    var color: Color { self == .official ? .green : .orange }
+    var color: Color { self == .official ? Brand.allowed : Brand.warning }
     var symbol: String { self == .official ? "checkmark.seal.fill" : "exclamationmark.bubble.fill" }
     var explanation: String {
         switch self {
@@ -57,13 +57,23 @@ extension ZoneKind {
 }
 
 extension SmokingSpot {
-    /// Map glyph: a checkmark for official spots, an aeroplane at Changi, a question mark for OSM.
+    /// Same symbols as the map markers: the painted box for NEA, a plane at Changi, a dashed box for OSM.
     var glyph: String {
         switch source {
-        case .nea: return "checkmark"
+        case .nea: return "square"
         case .changi: return "airplane"
-        case .osmArea, .osmVenue: return "questionmark"
+        case .osmArea, .osmVenue: return "square.dashed"
         }
+    }
+
+    var tint: Color { reliability == .official ? Brand.allowed : Brand.allowed.opacity(0.7) }
+
+    /// The one thing worth flagging about a spot, if any.
+    var caveat: String? {
+        if isAirside { return "Transit area" }
+        if isApproximate { return "Approximate" }
+        if reliability == .indicative { return "Indicative" }
+        return nil
     }
 }
 
