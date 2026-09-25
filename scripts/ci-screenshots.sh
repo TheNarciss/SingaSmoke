@@ -57,7 +57,7 @@ shoot 05-spot-list "$ORCHARD" 14 -uiShowList YES
 shoot 06-buy "$JURONG" 12 -uiMode buy
 shoot 07-guidance "$JURONG" 18 -uiGuideFirstSpot YES
 shoot 08-whole-island "$ABROAD" 12
-shoot 08b-district "$JURONG" 12 -uiSpanMeters 7000
+shoot 08b-district "$JURONG" 12 -uiSpanMeters 3000   # ~3 km wide, ~6.5 km tall
 shoot 09-about "$JURONG" 12 -uiShowInfo YES
 FIRST_LAUNCH=1 shoot 10-first-launch "$JURONG" 8
 xcrun simctl ui "$UDID" appearance dark
