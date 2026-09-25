@@ -28,6 +28,10 @@ xcrun simctl privacy "$UDID" grant location "$BUNDLE_ID"
 xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 \
   --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
 
+# Passed to every launch: the appearance is also forced inside the app, as the simulator's own
+# switch does not always reach it.
+APPEARANCE_ARGS=""
+
 # shoot NAME LAT,LON SECONDS [launch arguments…]   (FIRST_LAUNCH=1: keep the first-launch warning)
 shoot() {
   local name=$1 place=$2 wait=$3
@@ -37,7 +41,7 @@ shoot() {
   xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
   xcrun simctl location "$UDID" set "$place"
   # shellcheck disable=SC2086
-  xcrun simctl launch "$UDID" "$BUNDLE_ID" $skip "$@" >/dev/null
+  xcrun simctl launch "$UDID" "$BUNDLE_ID" $skip $APPEARANCE_ARGS "$@" >/dev/null
   sleep "$wait"
   xcrun simctl io "$UDID" screenshot "$OUT/$name.png" >/dev/null 2>&1
   echo "✓ $name"
@@ -51,6 +55,7 @@ ABROAD=3.13900,101.68690    # Kuala Lumpur: outside Singapore, the map stays on 
 # The appearance switch can take a moment to reach running services: wait, then check it.
 appearance() {
   xcrun simctl ui "$UDID" appearance "$1"
+  APPEARANCE_ARGS="-uiAppearance $1"
   sleep 3
   echo "Appearance: $(xcrun simctl ui "$UDID" appearance)"
 }
