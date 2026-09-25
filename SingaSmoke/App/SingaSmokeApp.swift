@@ -41,6 +41,7 @@ struct RootView: View {
                 acceptedDisclaimer = disclaimerVersion
                 model.location.start()
             })
+            .presentationBackground(Brand.sheet)
             .interactiveDismissDisabled()
         }
         .onChange(of: scenePhase, initial: true) { _, phase in

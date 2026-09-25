@@ -18,6 +18,13 @@ enum Brand {
     static let boxYellowUI = UIColor(red: 0.98, green: 0.80, blue: 0.08, alpha: 1)    // #FACC15
     /// Card surfaces over the map: white in light mode, dark grey in dark mode.
     static let card = Color(.secondarySystemGroupedBackground)
+    /// Opaque sheet backgrounds: the map must not show through the text.
+    static let sheet = Color(.systemBackground)
+    static let groupedSheet = Color(.systemGroupedBackground)
+    /// Main buttons and the selected mode: near-black in light mode, white in dark mode. Solid colours,
+    /// unlike `.primary`, which turns translucent on glass.
+    static let ink = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? .white : UIColor(white: 0.07, alpha: 1) })
+    static let onInk = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? .black : .white })
 }
 
 // MARK: - Surfaces
@@ -61,7 +68,7 @@ struct PillButtonStyle: ButtonStyle {
 
     private var foreground: Color {
         switch kind {
-        case .primary: return Color(.systemBackground)
+        case .primary: return Brand.onInk
         case .secondary: return .primary
         case .danger, .allowed: return .white
         }
@@ -69,7 +76,7 @@ struct PillButtonStyle: ButtonStyle {
 
     private var background: Color {
         switch kind {
-        case .primary: return .primary
+        case .primary: return Brand.ink
         case .secondary: return Color(.tertiarySystemFill)
         case .danger: return Brand.danger
         case .allowed: return Brand.allowed
@@ -144,8 +151,8 @@ struct Chip: View {
 }
 
 extension WalkingDistance {
-    /// "6 min · 450 m", with "≈" when estimated.
+    /// "6 min · 450 m", with "≈" when estimated (but not before "< 1 min").
     var chipText: String {
-        "\(isEstimate ? "≈ " : "")\(Format.duration(seconds)) · \(Format.distance(meters))"
+        "\(isEstimate && seconds >= 30 ? "≈ " : "")\(Format.duration(seconds)) · \(Format.distance(meters))"
     }
 }

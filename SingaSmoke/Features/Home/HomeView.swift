@@ -17,7 +17,7 @@ enum AppMode: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .smoke: return "mappin.and.ellipse"
+        case .smoke: return "smoke.fill"
         case .buy: return "bag.fill"
         }
     }
@@ -101,6 +101,7 @@ struct HomeView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(32)
+            .presentationBackground(Brand.sheet)
             .environment(model)
         }
         .sheet(item: $selectedShop, onDismiss: startPendingGuidance) { shop in
@@ -111,6 +112,7 @@ struct HomeView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(32)
+            .presentationBackground(Brand.sheet)
             .environment(model)
         }
         .sheet(isPresented: $showList, onDismiss: startPendingGuidance) {
@@ -129,11 +131,13 @@ struct HomeView: View {
             }
             .presentationDetents([.medium, .large])
             .presentationCornerRadius(32)
+            .presentationBackground(Brand.groupedSheet)
             .environment(model)
         }
         .sheet(isPresented: $showInfo) {
             InfoView()
                 .presentationCornerRadius(32)
+                .presentationBackground(Brand.groupedSheet)
                 .environment(model)
         }
         .fullScreenCover(item: $guidance) { target in
@@ -161,16 +165,17 @@ struct HomeView: View {
 
     #if DEBUG
     /// Launch arguments used by CI to capture screenshots:
-    /// -uiMode buy, -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES.
+    /// -uiMode buy, -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
     private func applyScreenshotArguments() async {
         let defaults = UserDefaults.standard
         if defaults.string(forKey: "uiMode") == "buy" { mode = .buy }
-        let wanted = ["uiOpenFirstSpot", "uiShowList", "uiGuideFirstSpot"].filter { defaults.bool(forKey: $0) }
+        let wanted = ["uiOpenFirstSpot", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"].filter { defaults.bool(forKey: $0) }
         guard !wanted.isEmpty else { return }
         try? await Task.sleep(for: .seconds(6))
         let first = model.nearestSpots.first?.item
         if wanted.contains("uiOpenFirstSpot") { selectedSpot = first }
         if wanted.contains("uiShowList") { showList = true }
+        if wanted.contains("uiShowInfo") { showInfo = true }
         if wanted.contains("uiGuideFirstSpot"), let first { guidance = GuidanceTarget(spot: first) }
     }
     #endif
@@ -199,10 +204,10 @@ struct ModePicker: View {
                         .font(.subheadline.weight(.bold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 11)
-                        .foregroundStyle(on ? Color(.systemBackground) : .primary)
+                        .foregroundStyle(on ? Brand.onInk : .primary)
                         .background {
                             if on {
-                                Capsule().fill(.primary).matchedGeometryEffect(id: "pill", in: pill)
+                                Capsule().fill(Brand.ink).matchedGeometryEffect(id: "pill", in: pill)
                             }
                         }
                 }

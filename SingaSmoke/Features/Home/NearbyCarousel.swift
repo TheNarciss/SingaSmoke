@@ -120,18 +120,28 @@ struct PlaceCard: View {
             .accessibilityHint("Opens the details")
 
             HStack(spacing: 8) {
-                Chip(text: walking.chipText, symbol: "figure.walk", tint: .primary)
-                if let caveat { Chip(text: caveat, tint: Brand.warning) }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) {
+                        walkingChip
+                        if let caveat { Chip(text: caveat, tint: Brand.warning).fixedSize() }
+                    }
+                    walkingChip
+                }
                 Spacer(minLength: 4)
                 Button(action: onGo) {
                     Label("Go", systemImage: "arrow.turn.up.right")
                 }
                 .buttonStyle(.pill(.primary, compact: true))
+                .fixedSize()
                 .accessibilityLabel("Walk to \(title)")
             }
         }
         .padding(16)
         .containerRelativeFrame(.horizontal) { length, _ in length - 48 }
         .card(radius: 28)
+    }
+
+    private var walkingChip: some View {
+        Chip(text: walking.chipText, symbol: "figure.walk", tint: .primary).fixedSize()
     }
 }

@@ -28,13 +28,16 @@ xcrun simctl privacy "$UDID" grant location "$BUNDLE_ID"
 xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 \
   --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
 
-# shoot NAME LAT,LON SECONDS [launch arguments…]
+# shoot NAME LAT,LON SECONDS [launch arguments…]   (FIRST_LAUNCH=1: keep the first-launch warning)
 shoot() {
   local name=$1 place=$2 wait=$3
   shift 3
+  local skip="-uiSkipDisclaimer YES"
+  if [ "${FIRST_LAUNCH:-0}" = 1 ]; then skip=""; fi
   xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
   xcrun simctl location "$UDID" set "$place"
-  xcrun simctl launch "$UDID" "$BUNDLE_ID" -uiSkipDisclaimer YES "$@" >/dev/null
+  # shellcheck disable=SC2086
+  xcrun simctl launch "$UDID" "$BUNDLE_ID" $skip "$@" >/dev/null
   sleep "$wait"
   xcrun simctl io "$UDID" screenshot "$OUT/$name.png" >/dev/null 2>&1
   echo "✓ $name"
@@ -43,6 +46,7 @@ shoot() {
 ORCHARD=1.30400,103.83240   # Orchard Road: no-smoking zone, NEA yellow boxes around
 GARDENS=1.31380,103.81590   # Singapore Botanic Gardens: smoke-free park
 JURONG=1.33330,103.74220    # Jurong East: ordinary streets, bus stops, shops
+ABROAD=3.13900,101.68690    # Kuala Lumpur: outside Singapore, the map stays on the whole island
 
 xcrun simctl ui "$UDID" appearance light
 shoot 01-orchard "$ORCHARD" 15
@@ -52,10 +56,14 @@ shoot 04-spot-sheet "$ORCHARD" 14 -uiOpenFirstSpot YES
 shoot 05-spot-list "$ORCHARD" 14 -uiShowList YES
 shoot 06-buy "$JURONG" 12 -uiMode buy
 shoot 07-guidance "$JURONG" 18 -uiGuideFirstSpot YES
+shoot 08-whole-island "$ABROAD" 12
+shoot 09-about "$JURONG" 12 -uiShowInfo YES
+FIRST_LAUNCH=1 shoot 10-first-launch "$JURONG" 8
 xcrun simctl ui "$UDID" appearance dark
-shoot 08-orchard-dark "$ORCHARD" 14
-shoot 09-buy-dark "$JURONG" 12 -uiMode buy
-shoot 10-spot-sheet-dark "$JURONG" 14 -uiOpenFirstSpot YES
+shoot 11-orchard-dark "$ORCHARD" 14
+shoot 12-buy-dark "$JURONG" 12 -uiMode buy
+shoot 13-spot-sheet-dark "$JURONG" 14 -uiOpenFirstSpot YES
+shoot 14-guidance-dark "$ORCHARD" 18 -uiGuideFirstSpot YES
 
 # Lighter files for the review.
 sips -Z 1200 "$OUT"/*.png >/dev/null

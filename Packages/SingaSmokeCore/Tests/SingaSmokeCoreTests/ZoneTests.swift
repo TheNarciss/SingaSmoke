@@ -66,6 +66,9 @@ final class ZoneTests: XCTestCase {
         XCTAssertEqual(named.title, "Park or garden · Bishan-Ang Mo Kio Park")
         let anonymous = Fixtures.pointZone(id: "b", kind: .busStop, at: Fixtures.origin, radius: 11)
         XCTAssertEqual(anonymous.title, "Bus stop")
+        let orchard = NoSmokingZone(id: "o", kind: .nsz, name: "Orchard Road No-Smoking Zone", source: .nea, buffer: 0,
+                                    geometry: .point(Fixtures.origin))
+        XCTAssertEqual(orchard.title, "Orchard Road No-Smoking Zone")
     }
 
     func testReliabilityFollowsTheSource() {

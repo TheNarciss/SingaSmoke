@@ -119,6 +119,7 @@ struct InfoView: View {
             }
             .sheet(isPresented: $showDisclaimer) {
                 DisclaimerSheet(onAccept: { showDisclaimer = false })
+                    .presentationBackground(Brand.sheet)
             }
         }
     }

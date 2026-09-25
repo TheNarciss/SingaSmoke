@@ -14,6 +14,8 @@ struct SingaMapView: UIViewRepresentable {
     var followsHeading = false
     /// Incremented by the parent to recentre on the user.
     var recenterToken = 0
+    /// Height of the card covering the bottom of the map: Apple's logo and "Legal" link go above it.
+    var attributionInset: CGFloat = 0
     var onSelectSpot: (SmokingSpot) -> Void = { _ in }
     var onSelectRetailer: (Retailer) -> Void = { _ in }
     var onRegionChange: (MKCoordinateRegion) -> Void = { _ in }
@@ -36,6 +38,7 @@ struct SingaMapView: UIViewRepresentable {
         map.showsUserLocation = true
         map.showsCompass = false
         map.showsScale = false
+        map.layoutMargins = UIEdgeInsets(top: 0, left: 0, bottom: attributionInset, right: 0)
         map.register(BadgeAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.spotID)
         map.register(BadgeAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.retailerID)
         map.register(BadgeAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.markerID)
@@ -191,12 +194,14 @@ struct SingaMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
-            // First fix in Singapore: zoom onto the user, once.
-            guard !centeredOnUser, !parent.followsHeading, let location = userLocation.location,
+            // First fix in Singapore: zoom onto the user, once. Street level for the map, closer when walking.
+            guard !centeredOnUser, let location = userLocation.location,
                   Geo.singapore.contains(Coordinate(location.coordinate)) else { return }
             centeredOnUser = true
-            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 900, longitudinalMeters: 900),
-                              animated: true)
+            let span: CLLocationDistance = parent.followsHeading ? 450 : 750
+            mapView.setRegion(MKCoordinateRegion(center: location.coordinate, latitudinalMeters: span, longitudinalMeters: span),
+                              animated: !parent.followsHeading)
+            if parent.followsHeading { mapView.setUserTrackingMode(.followWithHeading, animated: true) }
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {

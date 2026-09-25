@@ -46,7 +46,8 @@ struct GuidanceView: View {
                 marker: MarkerAnnotation(.destination, coordinate: target.coordinate, title: target.name),
                 route: route?.polyline,
                 followsHeading: true,
-                recenterToken: recenter
+                recenterToken: recenter,
+                attributionInset: 172
             )
             .ignoresSafeArea()
 
