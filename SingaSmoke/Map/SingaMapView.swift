@@ -70,6 +70,9 @@ struct SingaMapView: UIViewRepresentable {
 
     func updateUIView(_ map: MKMapView, context: Context) {
         context.coordinator.parent = self
+        if map.layoutMargins.bottom != attributionInset {
+            map.layoutMargins = UIEdgeInsets(top: 0, left: 0, bottom: attributionInset, right: 0)
+        }
         context.coordinator.sync(map)
     }
 

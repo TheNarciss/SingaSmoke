@@ -40,6 +40,9 @@ struct HomeView: View {
     /// the nearby cards at the bottom. Dragging or pinching the map minimises both.
     @State private var topMinimized = false
     @State private var bottomMinimized = false
+    /// Height of what covers the bottom-left corner (the cards or their pill): Apple's logo and
+    /// "Legal" link must stay visible above it.
+    @State private var bottomCover: CGFloat = 0
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -49,6 +52,7 @@ struct HomeView: View {
                 zoneIndex: mode == .smoke ? model.data?.zoneIndex : nil,
                 marker: exitMarker,
                 recenterToken: recenter,
+                attributionInset: bottomCover + 12,
                 onSelectSpot: { selectedSpot = $0 },
                 onSelectRetailer: { selectedShop = $0 },
                 onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) },
@@ -73,6 +77,7 @@ struct HomeView: View {
                 HStack(alignment: .bottom, spacing: 12) {
                     if bottomMinimized {
                         nearbyPill
+                            .background(BottomCoverReader())
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                     Spacer(minLength: 0)
@@ -95,10 +100,12 @@ struct HomeView: View {
                                    onOpenSpot: { selectedSpot = $0 },
                                    onOpenShop: { selectedShop = $0 },
                                    onGo: { guidance = $0 })
+                        .background(BottomCoverReader())
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .padding(.bottom, 8)
+            .onPreferenceChange(BottomCoverKey.self) { bottomCover = $0 }
         }
         .animation(.snappy, value: mode)
         .sensoryFeedback(.selection, trigger: mode)
@@ -255,6 +262,20 @@ struct HomeView: View {
         if wanted.contains("uiGuideFirstSpot"), let first { guidance = GuidanceTarget(spot: first) }
     }
     #endif
+}
+
+/// Reports the height of the view it is the background of, for `BottomCoverKey`.
+private struct BottomCoverReader: View {
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear.preference(key: BottomCoverKey.self, value: proxy.size.height)
+        }
+    }
+}
+
+private struct BottomCoverKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
 extension AppModel {
