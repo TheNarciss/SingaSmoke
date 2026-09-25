@@ -50,6 +50,7 @@ ABROAD=3.13900,101.68690    # Kuala Lumpur: outside Singapore, the map stays on 
 
 xcrun simctl ui "$UDID" appearance light
 shoot 01-orchard "$ORCHARD" 15
+shoot 01b-orchard-minimized "$ORCHARD" 14 -uiMinimize YES
 shoot 02-botanic-gardens "$GARDENS" 12
 shoot 03-jurong-east "$JURONG" 12
 shoot 04-spot-sheet "$ORCHARD" 14 -uiOpenFirstSpot YES
@@ -63,6 +64,7 @@ FIRST_LAUNCH=1 shoot 10-first-launch "$JURONG" 8
 xcrun simctl ui "$UDID" appearance dark
 shoot 11-orchard-dark "$ORCHARD" 14
 shoot 12-buy-dark "$JURONG" 12 -uiMode buy
+shoot 12b-buy-minimized-dark "$JURONG" 12 -uiMode buy -uiMinimize YES
 shoot 13-spot-sheet-dark "$JURONG" 14 -uiOpenFirstSpot YES
 shoot 14-guidance-dark "$ORCHARD" 18 -uiGuideFirstSpot YES
 

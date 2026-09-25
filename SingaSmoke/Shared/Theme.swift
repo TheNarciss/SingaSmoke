@@ -156,3 +156,58 @@ extension WalkingDistance {
         "\(isEstimate && seconds >= 30 ? "≈ " : "")\(Format.duration(seconds)) · \(Format.distance(meters))"
     }
 }
+
+/// What stays of a minimised card: a small capsule with its icon and a line or two. Tap to bring the card back.
+struct CompactPill: View {
+    let symbol: String
+    let tint: Color
+    let title: String
+    var detail: String?
+    /// Which way the card comes back from: "chevron.down" for the top, "chevron.up" for the bottom.
+    var chevron = "chevron.down"
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                IconCircle(symbol: symbol, tint: tint, size: 30)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(title)
+                        .font(.subheadline.weight(.bold))
+                        .lineLimit(1)
+                    if let detail {
+                        Text(detail)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Image(systemName: chevron)
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.leading, 6)
+            .padding(.trailing, 14)
+            .padding(.vertical, 6)
+            .frame(minHeight: 44)
+            .background(Brand.card, in: Capsule())
+            .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Shows the card again")
+    }
+}
+
+extension View {
+    /// Runs `action` on a mostly vertical swipe towards `edge`, without taking taps or horizontal drags away.
+    func onVerticalSwipe(_ edge: VerticalEdge, perform action: @escaping () -> Void) -> some View {
+        simultaneousGesture(
+            DragGesture(minimumDistance: 16).onEnded { value in
+                let dy = value.translation.height
+                guard abs(dy) > 28, abs(dy) > abs(value.translation.width) * 1.5 else { return }
+                if (edge == .top && dy < 0) || (edge == .bottom && dy > 0) { action() }
+            }
+        )
+    }
+}

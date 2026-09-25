@@ -19,6 +19,8 @@ struct SingaMapView: UIViewRepresentable {
     var onSelectSpot: (SmokingSpot) -> Void = { _ in }
     var onSelectRetailer: (Retailer) -> Void = { _ in }
     var onRegionChange: (MKCoordinateRegion) -> Void = { _ in }
+    /// The user started dragging or pinching the map (not a programmatic move).
+    var onUserGesture: () -> Void = {}
 
     static let singapore = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 1.3521, longitude: 103.8198),
@@ -44,6 +46,14 @@ struct SingaMapView: UIViewRepresentable {
         map.register(BadgeAnnotationView.self, forAnnotationViewWithReuseIdentifier: Coordinator.markerID)
         map.register(BadgeAnnotationView.self,
                      forAnnotationViewWithReuseIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier)
+        // Watch the user's own drags and pinches, alongside MapKit's recognisers.
+        for recognizer in [UIPanGestureRecognizer(), UIPinchGestureRecognizer()] as [UIGestureRecognizer] {
+            recognizer.addTarget(context.coordinator, action: #selector(Coordinator.userMovedMap(_:)))
+            recognizer.delegate = context.coordinator
+            recognizer.cancelsTouchesInView = false
+            recognizer.delaysTouchesEnded = false
+            map.addGestureRecognizer(recognizer)
+        }
         map.setRegion(Self.singapore, animated: false)
         map.setCameraBoundary(MKMapView.CameraBoundary(coordinateRegion: MKCoordinateRegion(
             center: Self.singapore.center, latitudinalMeters: 70_000, longitudinalMeters: 90_000)), animated: false)
@@ -64,7 +74,7 @@ struct SingaMapView: UIViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, MKMapViewDelegate {
+    final class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
         static let spotID = "spot"
         static let retailerID = "retailer"
         static let markerID = "marker"
@@ -84,6 +94,15 @@ struct SingaMapView: UIViewRepresentable {
 
         init(parent: SingaMapView) {
             self.parent = parent
+        }
+
+        @objc func userMovedMap(_ recognizer: UIGestureRecognizer) {
+            if recognizer.state == .began { parent.onUserGesture() }
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            true
         }
 
         // MARK: Keeping MapKit in step with SwiftUI
