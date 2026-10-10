@@ -1,43 +1,14 @@
 import SingaSmokeCore
 import SwiftUI
 
-/// The nearest licensed retailers of the categories shown on the map.
-struct RetailerListView: View {
-    @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
-    var onGo: (Retailer) -> Void
-
-    var body: some View {
-        List {
-            Section {
-                ForEach(model.nearestRetailers) { place in
-                    NavigationLink {
-                        RetailerDetailView(retailer: place.item, onGo: { onGo(place.item) })
-                            .navigationBarTitleDisplayMode(.inline)
-                    } label: {
-                        PlaceRow(symbol: place.item.category.symbol, tint: place.item.category.color,
-                                 title: place.item.name, subtitle: place.item.address, walking: place.walking)
-                    }
-                }
-            } footer: {
-                Text("HSA register of licensed tobacco retailers, located to the building of their postal code. No opening hours. \(Legal.vape)")
-            }
-        }
-        .navigationTitle("Shops")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { dismiss() }
-            }
-        }
-    }
-}
-
 /// One licensed retailer.
 struct RetailerDetailView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openURL) private var openURL
     let retailer: Retailer
     var onGo: () -> Void
+    /// Shown as a ✕ in the header when the details sit in the bottom sheet.
+    var onClose: (() -> Void)?
 
     @State private var walking: WalkingDistance?
 
@@ -45,10 +16,10 @@ struct RetailerDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top, spacing: 14) {
-                    IconCircle(symbol: retailer.category.symbol, tint: retailer.category.color, size: 54)
+                    IconCircle(symbol: retailer.category.symbol, tint: retailer.category.color, size: 46)
                     VStack(alignment: .leading, spacing: 6) {
                         Text(retailer.name)
-                            .font(.title2.weight(.bold))
+                            .font(.title3.weight(.bold))
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
                         Text(retailer.category.label)
@@ -59,6 +30,8 @@ struct RetailerDetailView: View {
                             Chip(text: "Licensed", symbol: Reliability.official.symbol, tint: Brand.allowed)
                         }
                     }
+                    Spacer(minLength: 0)
+                    if let onClose { CloseButton(action: onClose) }
                 }
 
                 InfoBlock(symbol: "mappin.and.ellipse", title: retailer.building ?? "Address",
@@ -95,7 +68,7 @@ struct RetailerDetailView: View {
                 .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 28)
+            .padding(.top, 18)   // under the sheet's grabber
             .padding(.bottom, 20)
         }
         .task(id: retailer.id) {

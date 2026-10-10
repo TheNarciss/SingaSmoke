@@ -156,3 +156,20 @@ extension WalkingDistance {
         "\(isEstimate && seconds >= 30 ? "≈ " : "")\(Format.duration(seconds)) · \(Format.distance(meters))"
     }
 }
+
+/// The round ✕ that closes a place in the bottom sheet.
+struct CloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 30, height: 30)
+                .background(Color(.tertiarySystemFill), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Close")
+    }
+}

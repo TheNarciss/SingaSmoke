@@ -20,7 +20,7 @@ struct CategoryChips: View {
                         Label(category.label, systemImage: category.symbol)
                             .font(.subheadline.weight(.bold))
                             .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 9)
                             .foregroundStyle(on ? Color.white : category.color)
                             .background(on ? category.color : Brand.card, in: Capsule())
                             .overlay(Capsule().strokeBorder(category.color.opacity(on ? 0 : 0.5), lineWidth: 1.5))
@@ -34,6 +34,7 @@ struct CategoryChips: View {
             .padding(.vertical, 12)
         }
         .contentMargins(.horizontal, 16, for: .scrollContent)
+        .fixedSize(horizontal: false, vertical: true)   // only as tall as the chips: the map stays draggable
         .padding(.horizontal, -16)
         .padding(.vertical, -12)
         .sensoryFeedback(.selection, trigger: model.retailerCategories)
