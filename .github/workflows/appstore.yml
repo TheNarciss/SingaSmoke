@@ -1,10 +1,10 @@
 name: App Store listing
 
 # The App Store listing lives in fastlane/metadata (English, U.K.); its screenshots are taken in the
-# simulator by scripts/appstore-screenshots.sh. On a pull request that touches them, the screenshots
-# are only taken, for review (branch "appstore-screenshots"). On the default branch, the text and
-# the screenshots go to App Store Connect, version 1.0, with the API key TestFlight already uses.
-# Nothing here selects a build or submits for review: that is done in App Store Connect.
+# simulator by scripts/appstore-screenshots.sh and always published on the "appstore-screenshots"
+# branch, for review. On a pull request that touches them, that is all. On the default branch, the
+# text and the screenshots then go to App Store Connect, version 1.0, with the API key TestFlight
+# already uses. Nothing here selects a build or submits for review: that is done in App Store Connect.
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     permissions:
-      contents: write   # the appstore-screenshots branch, on pull requests
+      contents: write   # the appstore-screenshots branch
     env:
       APP_VERSION: "1.0"
     steps:
@@ -60,11 +60,10 @@ jobs:
         run: scripts/appstore-screenshots.sh build/Build/Products/Debug-iphonesimulator/SingaSmoke.app fastlane/screenshots/en-GB
 
       - name: Publish the screenshots for review
-        if: github.event_name == 'pull_request'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           SHOTS="$RUNNER_TEMP/appstore-shots"

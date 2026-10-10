@@ -160,7 +160,7 @@ struct HomeView: View {
             .filter { defaults.bool(forKey: $0) }
         guard !wanted.isEmpty else { return }
         // Wait for the data and the first location fix (at most 10 s), then let the sheet appear.
-        for _ in 0..<40 where model.nearestSpots.isEmpty {
+        for _ in 0..<40 where model.nearestSpots.isEmpty || !model.referenceIsUser {
             try? await Task.sleep(for: .milliseconds(250))
         }
         try? await Task.sleep(for: .seconds(1))
