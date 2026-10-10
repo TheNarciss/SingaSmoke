@@ -45,22 +45,6 @@ jobs:
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
 
-      - name: Boot the simulator while the app compiles
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          # The newest iPhone "Pro" simulator (6.3", the size most people hold).
-          UDID=$(xcrun simctl list devices available -j | python3 -c '
-          import json, sys
-          devices = json.load(sys.stdin)["devices"]
-          phones = [(runtime, d) for runtime, ds in devices.items() if ".iOS-" in runtime
-                    for d in ds if d["name"].startswith("iPhone") and "Pro" in d["name"] and "Max" not in d["name"]]
-          phones.sort(key=lambda p: [int(x) for x in p[0].rsplit("iOS-", 1)[1].split("-")])
-          print(phones[-1][1]["udid"])')
-          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
-          xcrun simctl boot "$UDID" || true
-
       - name: Unit tests (point-in-polygon, distances, verdict, bundled data)
         working-directory: Packages/SingaSmokeCore
         run: swift test

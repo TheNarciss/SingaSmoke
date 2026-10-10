@@ -6,7 +6,6 @@
 #   scripts/ci-screenshots.sh path/to/SingaSmoke.app output-folder
 #
 # SHOT_SET=quick (default) takes the screens that change most; SHOT_SET=full takes every one.
-# SIM_UDID picks a simulator the workflow already booted.
 set -euo pipefail
 
 APP="${1:?path to SingaSmoke.app}"
@@ -14,17 +13,15 @@ OUT="${2:-screenshots}"
 BUNDLE_ID=uk.riskybusinesses.singasmoke
 mkdir -p "$OUT"
 
-# The newest iPhone "Pro" simulator (6.3", the size most people hold), unless one is booting already.
-UDID="${SIM_UDID:-}"
-if [ -z "$UDID" ]; then
-  UDID=$(xcrun simctl list devices available -j | python3 -c '
+# The newest iPhone "Pro" simulator (6.3", the size most people hold). Booted here, after the
+# build: booting it during the compilation slowed both down on the runner's few cores.
+UDID=$(xcrun simctl list devices available -j | python3 -c '
 import json, sys
 devices = json.load(sys.stdin)["devices"]
 phones = [(runtime, d) for runtime, ds in devices.items() if ".iOS-" in runtime
           for d in ds if d["name"].startswith("iPhone") and "Pro" in d["name"] and "Max" not in d["name"]]
 phones.sort(key=lambda p: [int(x) for x in p[0].rsplit("iOS-", 1)[1].split("-")])
 print(phones[-1][1]["udid"])')
-fi
 echo "Simulator: $UDID"
 
 xcrun simctl boot "$UDID" || true
