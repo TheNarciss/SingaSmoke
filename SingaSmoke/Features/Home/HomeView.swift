@@ -10,8 +10,8 @@ enum AppMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .smoke: return "Smoke"
-        case .buy: return "Buy"
+        case .smoke: return "Smoking areas"
+        case .buy: return "Where to buy"
         }
     }
 
@@ -23,221 +23,117 @@ enum AppMode: String, CaseIterable, Identifiable {
     }
 }
 
-/// One screen, map first: where you can smoke (or buy), what the rule is here, and the nearest options.
+/// One screen laid out like a maps app: the map everywhere, a slim status bar and two chips on top,
+/// a bottom sheet that stays folded on the nearest place until it is pulled up or a place is picked.
 struct HomeView: View {
+    /// Folded sheet: the nearest place and its Go button, nothing more.
+    static let folded = PresentationDetent.height(112)
+
     @Environment(AppModel.self) private var model
     @State private var mode: AppMode = .smoke
-    @State private var selectedSpot: SmokingSpot?
-    @State private var selectedShop: Retailer?
+    @State private var selection: SelectedPlace?
+    @State private var detent: PresentationDetent = HomeView.folded
+    @State private var statusExpanded = false
     @State private var guidance: GuidanceTarget?
-    /// Guidance asked from a sheet: shown once the sheet is gone (two modals cannot overlap).
-    @State private var pendingGuidance: GuidanceTarget?
-    @State private var recenter = 0
-    @State private var showExit = false
-    @State private var showList = false
     @State private var showInfo = false
-    /// Cards minimised to leave the map room: the status card (or the shop filters) at the top,
-    /// the nearby cards at the bottom. Dragging or pinching the map minimises both.
-    @State private var topMinimized = false
-    @State private var bottomMinimized = false
-    /// Height of what covers the bottom-left corner (the cards or their pill): Apple's logo and
-    /// "Legal" link must stay visible above it.
-    @State private var bottomCover: CGFloat = 0
+    @State private var showExit = false
+    @State private var recenter = 0
+    /// Top of the sheet, in window coordinates: Apple's logo and "Legal" link go just above it.
+    @State private var sheetTop: CGFloat?
 
     var body: some View {
-        ZStack(alignment: .top) {
-            SingaMapView(
-                spots: mode == .smoke ? (model.data?.spots ?? []) : [],
-                retailers: mode == .buy ? model.filteredRetailers : [],
-                zoneIndex: mode == .smoke ? model.data?.zoneIndex : nil,
-                marker: exitMarker,
-                recenterToken: recenter,
-                attributionInset: bottomCover + 12,
-                onSelectSpot: { selectedSpot = $0 },
-                onSelectRetailer: { selectedShop = $0 },
-                onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) },
-                onUserGesture: { setMinimized(true) }
-            )
-            .ignoresSafeArea()
-            .accessibilityLabel(mode == .smoke ? "Map of smoking and no-smoking areas" : "Map of licensed tobacco retailers")
+        GeometryReader { screen in
+            let screenBottom = screen.frame(in: .global).maxY + screen.safeAreaInsets.bottom
+            ZStack(alignment: .top) {
+                SingaMapView(
+                    spots: mode == .smoke ? (model.data?.spots ?? []) : [],
+                    retailers: mode == .buy ? model.filteredRetailers : [],
+                    zoneIndex: mode == .smoke ? model.data?.zoneIndex : nil,
+                    marker: exitMarker,
+                    recenterToken: recenter,
+                    attributionInset: attributionInset(screenBottom: screenBottom, safeBottom: screen.safeAreaInsets.bottom,
+                                                       screenHeight: screen.size.height),
+                    onSelectSpot: { select(.spot($0)) },
+                    onSelectRetailer: { select(.shop($0)) },
+                    onRegionChange: { model.mapCentreChanged(Coordinate($0.center)) },
+                    onUserGesture: mapTouched
+                )
+                .ignoresSafeArea()
+                .accessibilityLabel(mode == .smoke ? "Map of smoking and no-smoking areas" : "Map of licensed tobacco retailers")
 
-            VStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 10) {
-                        ModePicker(mode: $mode)
-                        Spacer(minLength: 0)
-                        FloatingButton(symbol: "info", label: "About SingaSmoke", size: 44) { showInfo = true }
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        StatusBar(verdict: model.verdict, locationDenied: model.location.isDenied,
+                                  expanded: $statusExpanded,
+                                  onShowExit: {
+                                      showExit = true
+                                      recenter += 1
+                                      withAnimation(.snappy) { statusExpanded = false }
+                                  })
+                        ModeChips(mode: $mode)
                     }
-                    topPanel
+                    MapControls(onInfo: { showInfo = true }, onLocate: { recenter += 1 })
                 }
-                .padding(.horizontal, 16)
-
-                Spacer(minLength: 0)
-
-                HStack(alignment: .bottom, spacing: 12) {
-                    if bottomMinimized {
-                        nearbyPill
-                            .background(BottomCoverReader())
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                    Spacer(minLength: 0)
-                    VStack(spacing: 12) {
-                        FloatingButton(symbol: allMinimized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
-                                       label: allMinimized ? "Show the cards" : "Full-screen map") {
-                            setMinimized(!allMinimized)
-                        }
-                        FloatingButton(symbol: "list.bullet", label: mode == .smoke ? "All smoking spots" : "All shops") { showList = true }
-                        FloatingButton(symbol: "location.fill", label: "Centre on my location") { recenter += 1 }
-                    }
-                }
-                .padding(.horizontal, 16)
-
-                if !bottomMinimized {
-                    NearbyCarousel(mode: mode,
-                                   spots: Array(model.nearestSpots.prefix(8)),
-                                   shops: Array(model.nearestRetailers.prefix(8)),
-                                   referenceIsUser: model.referenceIsUser,
-                                   onOpenSpot: { selectedSpot = $0 },
-                                   onOpenShop: { selectedShop = $0 },
-                                   onGo: { guidance = $0 })
-                        .background(BottomCoverReader())
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
             }
-            .padding(.bottom, 8)
-            .onPreferenceChange(BottomCoverKey.self) { bottomCover = $0 }
         }
-        .animation(.snappy, value: mode)
         .sensoryFeedback(.selection, trigger: mode)
-        .sheet(item: $selectedSpot, onDismiss: startPendingGuidance) { spot in
-            SpotDetailView(spot: spot, onGo: {
-                pendingGuidance = GuidanceTarget(spot: spot)
-                selectedSpot = nil
-            })
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(32)
-            .presentationBackground(Brand.sheet)
-            .environment(model)
-        }
-        .sheet(item: $selectedShop, onDismiss: startPendingGuidance) { shop in
-            RetailerDetailView(retailer: shop, onGo: {
-                pendingGuidance = GuidanceTarget(retailer: shop)
-                selectedShop = nil
-            })
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(32)
-            .presentationBackground(Brand.sheet)
-            .environment(model)
-        }
-        .sheet(isPresented: $showList, onDismiss: startPendingGuidance) {
-            NavigationStack {
-                if mode == .smoke {
-                    SpotListView(onGo: { spot in
-                        pendingGuidance = GuidanceTarget(spot: spot)
-                        showList = false
-                    })
-                } else {
-                    RetailerListView(onGo: { shop in
-                        pendingGuidance = GuidanceTarget(retailer: shop)
-                        showList = false
-                    })
-                }
-            }
-            .presentationDetents([.medium, .large])
-            .presentationCornerRadius(32)
-            .presentationBackground(Brand.groupedSheet)
-            .environment(model)
-        }
-        .sheet(isPresented: $showInfo) {
-            InfoView()
-                .presentationCornerRadius(32)
-                .presentationBackground(Brand.groupedSheet)
-                .environment(model)
-        }
-        .fullScreenCover(item: $guidance) { target in
-            GuidanceView(target: target)
-                .environment(model)
+        .onChange(of: mode) { _, _ in
+            selection = nil
         }
         .onChange(of: model.verdictIsProhibited) { _, prohibited in
             if !prohibited { showExit = false }
+        }
+        .sheet(isPresented: .constant(true)) {
+            HomeSheet(mode: mode, selection: selection,
+                      onSelect: select,
+                      onClose: {
+                          selection = nil
+                          detent = Self.folded
+                      },
+                      onGo: { guidance = $0 })
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear
+                            .onAppear { sheetTop = proxy.frame(in: .global).minY }
+                            .onChange(of: proxy.frame(in: .global).minY) { _, top in sheetTop = top }
+                    }
+                }
+                .presentationDetents([Self.folded, .medium, .large], selection: $detent)
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(28)
+                .presentationBackground(Brand.sheet)
+                .interactiveDismissDisabled()
+                // Presented from the sheet: the map screen already has the sheet as its one presentation.
+                .sheet(isPresented: $showInfo) {
+                    InfoView()
+                        .presentationBackground(Brand.groupedSheet)
+                        .environment(model)
+                }
+                .fullScreenCover(item: $guidance) { target in
+                    GuidanceView(target: target)
+                        .environment(model)
+                }
+                .environment(model)
         }
         #if DEBUG
         .task { await applyScreenshotArguments() }
         #endif
     }
 
-    // MARK: Minimised cards
+    // MARK: Interaction
 
-    private var allMinimized: Bool { topMinimized && bottomMinimized }
-
-    private func setMinimized(_ minimized: Bool) {
-        guard topMinimized != minimized || bottomMinimized != minimized else { return }
-        withAnimation(.snappy) {
-            topMinimized = minimized
-            bottomMinimized = minimized
-        }
+    private func select(_ place: SelectedPlace) {
+        selection = place
+        if detent == Self.folded { detent = .medium }
     }
 
-    /// The status card or, in Buy mode, the shop filters; a small pill when minimised.
-    @ViewBuilder
-    private var topPanel: some View {
-        switch (mode, topMinimized) {
-        case (.smoke, false):
-            StatusCard(verdict: model.verdict, locationDenied: model.location.isDenied,
-                       onShowExit: { showExit = true; recenter += 1 },
-                       onMinimize: { withAnimation(.snappy) { topMinimized = true } })
-                .transition(.move(edge: .top).combined(with: .opacity))
-        case (.smoke, true):
-            let summary = VerdictSummary(model.verdict, locationDenied: model.location.isDenied)
-            CompactPill(symbol: summary.symbol, tint: summary.tint, title: summary.title) {
-                withAnimation(.snappy) { topMinimized = false }
-            }
-            .transition(.move(edge: .top).combined(with: .opacity))
-        case (.buy, false):
-            CategoryChips()
-                .onVerticalSwipe(.top) { withAnimation(.snappy) { topMinimized = true } }
-                .transition(.move(edge: .top).combined(with: .opacity))
-        case (.buy, true):
-            let shown = model.retailerCategories.count
-            CompactPill(symbol: "line.3.horizontal.decrease", tint: Brand.accent, title: "Shop types",
-                        detail: shown == RetailCategory.allCases.count ? "All shown" : "\(shown) of \(RetailCategory.allCases.count) shown") {
-                withAnimation(.snappy) { topMinimized = false }
-            }
-            .transition(.move(edge: .top).combined(with: .opacity))
-        }
-    }
-
-    /// The nearest place in one line, standing in for the minimised cards.
-    private var nearbyPill: some View {
-        let restore = { withAnimation(.snappy) { bottomMinimized = false } }
-        return Group {
-            switch mode {
-            case .smoke:
-                if let place = model.nearestSpots.first {
-                    CompactPill(symbol: place.item.glyph, tint: place.item.tint, title: place.item.name,
-                                detail: place.walking.chipText, chevron: "chevron.up", action: restore)
-                } else {
-                    CompactPill(symbol: "mappin.and.ellipse", tint: Brand.allowed, title: "Nearby spots",
-                                chevron: "chevron.up", action: restore)
-                }
-            case .buy:
-                if let place = model.nearestRetailers.first {
-                    CompactPill(symbol: place.item.category.symbol, tint: place.item.category.color, title: place.item.name,
-                                detail: place.walking.chipText, chevron: "chevron.up", action: restore)
-                } else {
-                    CompactPill(symbol: "bag.fill", tint: .gray, title: "Nearby shops",
-                                chevron: "chevron.up", action: restore)
-                }
-            }
-        }
-    }
-
-    private func startPendingGuidance() {
-        guard let pending = pendingGuidance else { return }
-        pendingGuidance = nil
-        guidance = pending
+    /// The map moved under the user's finger: fold everything so the map gets the screen back.
+    private func mapTouched() {
+        if statusExpanded { withAnimation(.snappy) { statusExpanded = false } }
+        if detent == .medium { detent = Self.folded }
     }
 
     private var exitMarker: MarkerAnnotation? {
@@ -245,37 +141,30 @@ struct HomeView: View {
         return MarkerAnnotation(.exit, coordinate: hit.exit, title: "Way out of the zone")
     }
 
+    /// From the bottom safe area up to just above the sheet, never past the middle of the screen.
+    private func attributionInset(screenBottom: CGFloat, safeBottom: CGFloat, screenHeight: CGFloat) -> CGFloat {
+        guard let sheetTop, sheetTop.isFinite else { return 0 }
+        let covered = screenBottom - sheetTop - safeBottom
+        return max(0, min(covered + 6, screenHeight * 0.5))
+    }
+
     #if DEBUG
-    /// Launch arguments used by CI to capture screenshots:
-    /// -uiMode buy, -uiMinimize YES, -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
+    /// Launch arguments used by CI to capture screenshots: -uiMode buy, -uiExpandStatus YES,
+    /// -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
     private func applyScreenshotArguments() async {
         let defaults = UserDefaults.standard
         if defaults.string(forKey: "uiMode") == "buy" { mode = .buy }
-        if defaults.bool(forKey: "uiMinimize") { topMinimized = true; bottomMinimized = true }
+        if defaults.bool(forKey: "uiExpandStatus") { statusExpanded = true }
         let wanted = ["uiOpenFirstSpot", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"].filter { defaults.bool(forKey: $0) }
         guard !wanted.isEmpty else { return }
         try? await Task.sleep(for: .seconds(6))
         let first = model.nearestSpots.first?.item
-        if wanted.contains("uiOpenFirstSpot") { selectedSpot = first }
-        if wanted.contains("uiShowList") { showList = true }
+        if wanted.contains("uiOpenFirstSpot"), let first { select(.spot(first)) }
+        if wanted.contains("uiShowList") { detent = .medium }
         if wanted.contains("uiShowInfo") { showInfo = true }
         if wanted.contains("uiGuideFirstSpot"), let first { guidance = GuidanceTarget(spot: first) }
     }
     #endif
-}
-
-/// Reports the height of the view it is the background of, for `BottomCoverKey`.
-private struct BottomCoverReader: View {
-    var body: some View {
-        GeometryReader { proxy in
-            Color.clear.preference(key: BottomCoverKey.self, value: proxy.size.height)
-        }
-    }
-}
-
-private struct BottomCoverKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
 extension AppModel {
@@ -285,35 +174,57 @@ extension AppModel {
     }
 }
 
-/// Smoke / Buy, as a capsule with a sliding black pill.
-struct ModePicker: View {
+/// Smoking areas / Where to buy, as two chips under the status bar.
+struct ModeChips: View {
     @Binding var mode: AppMode
-    @Namespace private var pill
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 8) {
             ForEach(AppMode.allCases) { item in
                 let on = item == mode
                 Button {
-                    mode = item
+                    withAnimation(.snappy) { mode = item }
                 } label: {
                     Label(item.title, systemImage: item.symbol)
-                        .font(.subheadline.weight(.bold))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 11)
+                        .font(.footnote.weight(.bold))
+                        .lineLimit(1)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                         .foregroundStyle(on ? Brand.onInk : .primary)
-                        .background {
-                            if on {
-                                Capsule().fill(Brand.ink).matchedGeometryEffect(id: "pill", in: pill)
-                            }
-                        }
+                        .background(on ? Brand.ink : Brand.card, in: Capsule())
+                        .shadow(color: .black.opacity(0.14), radius: 8, y: 3)
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        .padding(4)
-        .background(Brand.card, in: Capsule())
+    }
+}
+
+/// Info and recentre stacked in one small capsule, top right, as in Apple Maps.
+struct MapControls: View {
+    let onInfo: () -> Void
+    let onLocate: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            control("info", label: "About SingaSmoke", action: onInfo)
+            Divider().frame(width: 26)
+            control("location.fill", label: "Centre on my location", action: onLocate)
+        }
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
+    }
+
+    private func control(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 46, height: 46)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 }

@@ -62,21 +62,21 @@ appearance() {
 
 appearance light
 shoot 01-orchard "$ORCHARD" 15
-shoot 01b-orchard-minimized "$ORCHARD" 14 -uiMinimize YES
+shoot 01b-orchard-status "$ORCHARD" 14 -uiExpandStatus YES
 shoot 02-botanic-gardens "$GARDENS" 12
 shoot 03-jurong-east "$JURONG" 12
 shoot 04-spot-sheet "$ORCHARD" 14 -uiOpenFirstSpot YES
 shoot 05-spot-list "$ORCHARD" 14 -uiShowList YES
 shoot 06-buy "$JURONG" 12 -uiMode buy
+shoot 06b-buy-list "$JURONG" 14 -uiMode buy -uiShowList YES
 shoot 07-guidance "$JURONG" 18 -uiGuideFirstSpot YES
 shoot 08-whole-island "$ABROAD" 12
 shoot 08b-district "$JURONG" 12 -uiSpanMeters 3000   # ~3 km wide, ~6.5 km tall
-shoot 09-about "$JURONG" 12 -uiShowInfo YES
+shoot 09-about "$JURONG" 14 -uiShowInfo YES
 FIRST_LAUNCH=1 shoot 10-first-launch "$JURONG" 8
 appearance dark
 shoot 11-orchard-dark "$ORCHARD" 14
 shoot 12-buy-dark "$JURONG" 12 -uiMode buy
-shoot 12b-buy-minimized-dark "$JURONG" 12 -uiMode buy -uiMinimize YES
 shoot 13-spot-sheet-dark "$JURONG" 14 -uiOpenFirstSpot YES
 shoot 14-guidance-dark "$ORCHARD" 18 -uiGuideFirstSpot YES
 

@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 /// What the app says about where the user stands: an icon, a colour, a title, a line of context.
-/// Shared by the status card and its minimised pill.
+/// Shared by the status bar and anything else that sums up the verdict.
 struct VerdictSummary {
     let symbol: String
     let tint: Color
@@ -46,82 +46,80 @@ struct VerdictSummary {
     }
 }
 
-/// "Can I smoke here?" in one glance: a coloured disc, a short verdict, a line of context.
-/// Tap to unfold the rule, the other zones around and the fine; swipe up to minimise it.
-struct StatusCard: View {
+/// "Can I smoke here?" as one slim bar at the top of the map, where a maps app puts its search field.
+/// Tap it to unfold the rule, the zones around and the fine; it folds back when the map moves.
+struct StatusBar: View {
     let verdict: Verdict
     let locationDenied: Bool
+    @Binding var expanded: Bool
     var onShowExit: () -> Void = {}
-    var onMinimize: () -> Void = {}
-
-    @State private var expanded = false
 
     var body: some View {
         let summary = VerdictSummary(verdict, locationDenied: locationDenied)
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
                 Button {
-                    guard hasDetails else { return }
                     withAnimation(.snappy) { expanded.toggle() }
                 } label: {
-                    HStack(alignment: .center, spacing: 12) {
-                        IconCircle(symbol: summary.symbol, tint: summary.tint, size: 40)
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text(summary.title)
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                if hasDetails {
-                                    Image(systemName: "chevron.down")
-                                        .font(.caption.weight(.heavy))
-                                        .foregroundStyle(.tertiary)
-                                        .rotationEffect(.degrees(expanded ? 180 : 0))
-                                }
-                            }
-                            if let subtitle = summary.subtitle {
+                    HStack(spacing: 10) {
+                        IconCircle(symbol: summary.symbol, tint: summary.tint, size: 32)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(summary.title)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            if expanded, let subtitle = summary.subtitle {
                                 Text(subtitle)
-                                    .font(.subheadline)
+                                    .font(.footnote)
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(expanded ? nil : 2)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                         Spacer(minLength: 0)
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.heavy))
+                            .foregroundStyle(.tertiary)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.isHeader)
-                .accessibilityHint(hasDetails ? (expanded ? "Hides the details" : "Shows the details") : "")
+                .accessibilityHint(expanded ? "Hides the details" : "Shows the details")
 
-                Button(action: onMinimize) {
-                    Image(systemName: "chevron.up")
-                        .font(.footnote.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 30, height: 30)
-                        .background(Color(.tertiarySystemFill), in: Circle())
+                // Folded inside a zone, the way out stays one tap away.
+                if !expanded, case .prohibited(let hit, _, _) = verdict {
+                    Button(action: onShowExit) {
+                        Label(Format.distance(hit.exitDistance), systemImage: "figure.walk")
+                            .font(.caption.weight(.bold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .foregroundStyle(.white)
+                            .background(Brand.danger, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Way out, \(Format.distance(hit.exitDistance)) \(hit.exitDirection.rawValue)")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Minimise the status card")
             }
-
-            if case .prohibited(let hit, _, _) = verdict {
-                Button(action: onShowExit) {
-                    Label("Way out · \(Format.distance(hit.exitDistance)) \(hit.exitDirection.rawValue)", systemImage: "figure.walk")
-                }
-                .buttonStyle(.pill(.danger, compact: true))
-            }
-
-            if case .noLocation = verdict, locationDenied {
-                Button("Open Settings") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                }
-                .buttonStyle(.pill(.primary, compact: true))
-            }
+            .padding(.leading, 8)
+            .padding(.trailing, 12)
+            .frame(minHeight: 48)
 
             if expanded {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
+                    if case .prohibited(let hit, _, _) = verdict {
+                        Button(action: onShowExit) {
+                            Label("Way out · \(Format.distance(hit.exitDistance)) \(hit.exitDirection.rawValue)", systemImage: "figure.walk")
+                        }
+                        .buttonStyle(.pill(.danger, compact: true))
+                    }
+                    if case .noLocation = verdict, locationDenied {
+                        Button("Open Settings") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                        }
+                        .buttonStyle(.pill(.primary, compact: true))
+                    }
                     ForEach(details, id: \.self) { line in
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Circle().fill(.tertiary).frame(width: 5, height: 5).offset(y: -2)
@@ -132,13 +130,15 @@ struct StatusCard: View {
                         }
                     }
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .padding(.horizontal, 14)
+                .padding(.top, 4)
+                .padding(.bottom, 14)
+                .transition(.opacity)
             }
         }
-        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .card(radius: 24)
-        .onVerticalSwipe(.top, perform: onMinimize)
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
     }
 
     // MARK: Details per verdict
@@ -166,12 +166,5 @@ struct StatusCard: View {
         }
         lines.append(Legal.signage)
         return lines
-    }
-
-    private var hasDetails: Bool {
-        switch verdict {
-        case .noLocation, .outsideSingapore: return false
-        default: return true
-        }
     }
 }

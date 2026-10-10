@@ -7,7 +7,7 @@ App iPhone qui répond en quelques secondes à deux questions, partout à Singap
 
 Plus un mode **Buy** : les ~4 200 points de vente de tabac sous licence HSA, filtrables par type (convenience store, supermarket, minimart, petrol station, kopitiam, other).
 
-Un seul écran, la carte d'abord, dans l'esprit des apps de trottinettes comme Lime : fond de carte sobre, zones interdites en rouge, pastilles vertes pour les spots, carte de statut en haut, cartes des spots les plus proches à faire défiler en bas, sélecteur Smoke / Buy. Dès qu'on fait glisser ou qu'on pince la carte, les cartes du haut et du bas se réduisent en petites pastilles (un tap les rappelle) ; le bouton plein écran les masque ou les rappelle toutes les deux.
+Un seul écran, la carte d'abord, organisé comme Google Maps : fond de carte sobre, zones interdites en rouge, pastilles vertes pour les spots. En haut, une barre fine dit si on peut fumer ici (un tap pour le détail et la sortie de zone), avec deux puces Smoking areas / Where to buy. En bas, un panneau qu'on tire : replié, il ne montre que le spot le plus proche et son bouton Go ; tiré, toute la liste ; un tap sur un spot y affiche sa fiche. La carte reste utilisable en permanence, et la bouger replie tout.
 
 Pas de compte, pas de serveur, pas de clé API, aucun suivi. iPhone uniquement, iOS 17 minimum, interface en anglais, clair et sombre, VoiceOver et tailles de texte dynamiques.
 
@@ -73,8 +73,8 @@ SingaSmoke/                  l'app (SwiftUI, MapKit, CoreLocation)
   App/                       point d'entrée, avertissement au premier lancement
   Model/                     état de l'app, localisation « quand l'app est ouverte », itinéraires Apple
   Map/                       MKMapView : pastilles, regroupement des 4 200 points, zones en rouge
-  Features/Home              l'écran principal : carte, carte de statut, cartes des spots proches
-  Features/Smoke|Buy|Navigation|About   fiches, listes, guidage à pied, infos
+  Features/Home              l'écran principal : carte, barre de statut, panneau du bas
+  Features/Smoke|Buy|Navigation|About   fiches, filtres, guidage à pied, infos
   Shared/Theme.swift         le style : couleurs, cartes flottantes, boutons pilule
   Resources/Data/            les données générées
 Packages/SingaSmokeCore/     toute la logique, sans interface : géométrie, zones, verdict, formats

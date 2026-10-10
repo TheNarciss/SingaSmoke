@@ -7,6 +7,8 @@ struct SpotDetailView: View {
     @Environment(\.openURL) private var openURL
     let spot: SmokingSpot
     var onGo: () -> Void
+    /// Shown as a ✕ in the header when the details sit in the bottom sheet.
+    var onClose: (() -> Void)?
 
     @State private var walking: WalkingDistance?
 
@@ -83,7 +85,7 @@ struct SpotDetailView: View {
                 footer
             }
             .padding(.horizontal, 20)
-            .padding(.top, 28)
+            .padding(.top, 18)   // under the sheet's grabber
             .padding(.bottom, 20)
         }
         .task(id: spot.id) {
@@ -94,10 +96,10 @@ struct SpotDetailView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: 14) {
-            IconCircle(symbol: spot.glyph, tint: spot.tint, size: 54)
+            IconCircle(symbol: spot.glyph, tint: spot.tint, size: 46)
             VStack(alignment: .leading, spacing: 6) {
                 Text(spot.name)
-                    .font(.title2.weight(.bold))
+                    .font(.title3.weight(.bold))
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Text(spot.source.label)
@@ -108,6 +110,8 @@ struct SpotDetailView: View {
                     VStack(alignment: .leading, spacing: 6) { chips }
                 }
             }
+            Spacer(minLength: 0)
+            if let onClose { CloseButton(action: onClose) }
         }
     }
 
