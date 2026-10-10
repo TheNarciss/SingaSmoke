@@ -1,0 +1,112 @@
+name: App Store listing
+
+# The App Store listing lives in fastlane/metadata (English, U.K.); its screenshots are taken in the
+# simulator by scripts/appstore-screenshots.sh and always published on the "appstore-screenshots"
+# branch, for review. On a pull request that touches them, that is all. On the default branch, the
+# text and the screenshots then go to App Store Connect, version 1.0, with the API key TestFlight
+# already uses. Nothing here selects a build or submits for review: that is done in App Store Connect.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fastlane/**"
+      - "scripts/appstore-screenshots.sh"
+      - ".github/workflows/appstore.yml"
+  pull_request:
+    paths:
+      - "fastlane/**"
+      - "scripts/appstore-screenshots.sh"
+      - ".github/workflows/appstore.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: appstore-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  listing:
+    name: Screenshots + App Store listing
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: write   # the appstore-screenshots branch
+    env:
+      APP_VERSION: "1.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -z "$XCODE" ]; then echo "Xcode 26 introuvable sur ce runner"; ls /Applications | grep Xcode; exit 1; fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Compile for the simulator
+        run: |
+          set -o pipefail
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild build \
+            -project SingaSmoke.xcodeproj -scheme SingaSmoke -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            | tail -n 40
+
+      - name: App Store screenshots (6.9-inch iPhone)
+        run: scripts/appstore-screenshots.sh build/Build/Products/Debug-iphonesimulator/SingaSmoke.app fastlane/screenshots/en-GB
+
+      - name: Publish the screenshots for review
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          SHOTS="$RUNNER_TEMP/appstore-shots"
+          mkdir -p "$SHOTS" && cp fastlane/screenshots/en-GB/*.png "$SHOTS"/
+          cd "$SHOTS"
+          git init -q -b appstore-screenshots
+          git add .
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "App Store screenshots of $HEAD_SHA"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" appstore-screenshots
+          RAW="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/appstore-screenshots"
+          {
+            echo "### App Store screenshots of ${HEAD_SHA:0:7}"
+            echo
+            for f in *.png; do echo "<img src=\"$RAW/$f?v=${HEAD_SHA:0:7}\" width=\"220\" alt=\"$f\">"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Send the listing to App Store Connect
+        if: github.event_name != 'pull_request'
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          KEY_P8_B64: ${{ secrets.APPSTORE_API_KEY_P8_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEY_ID" ] || [ -z "$ISSUER_ID" ] || [ -z "$KEY_P8_B64" ]; then
+            echo "::error title=App Store listing::App Store Connect API key secrets missing (docs/testflight.md)"
+            exit 1
+          fi
+          command -v fastlane >/dev/null || brew install fastlane
+          jq -n --arg id "$KEY_ID" --arg issuer "$ISSUER_ID" --arg key "$KEY_P8_B64" \
+            '{key_id: $id, issuer_id: $issuer, key: $key, is_key_content_base64: true, duration: 1200, in_house: false}' \
+            > "$RUNNER_TEMP/asc_api_key.json"
+          fastlane deliver \
+            --api_key_path "$RUNNER_TEMP/asc_api_key.json" \
+            --app_identifier uk.riskybusinesses.singasmoke \
+            --platform ios \
+            --app_version "$APP_VERSION" \
+            --metadata_path fastlane/metadata \
+            --screenshots_path fastlane/screenshots \
+            --skip_binary_upload true \
+            --overwrite_screenshots true \
+            --submit_for_review false \
+            --run_precheck_before_submit false \
+            --force true
+          echo "::notice title=App Store listing::Text and screenshots sent to App Store Connect, version $APP_VERSION."

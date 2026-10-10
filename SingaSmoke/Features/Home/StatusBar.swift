@@ -152,7 +152,11 @@ struct StatusBar: View {
             if let caution { lines.append("Careful: \(caution.zone.title) \(Format.distance(max(0, caution.signedDistance))) away.") }
         case .prohibited(let hit, let others, let spotHere):
             lines.append(hit.zone.kind.rule)
-            for other in others.prefix(3) { lines.append("Also: \(other.zone.title).") }
+            // Other zones here, once each and not the one already named (parks often overlap).
+            var named: Set<String> = [hit.zone.title]
+            for other in others where named.insert(other.zone.title).inserted && named.count <= 4 {
+                lines.append("Also: \(other.zone.title).")
+            }
             if spotHere != nil { lines.append("OpenStreetMap reports a smoking spot here, but the zone's rule wins.") }
             if hit.zone.reliability == .indicative { lines.append("Zone taken from OpenStreetMap: indicative.") }
             lines.append(Legal.fine)

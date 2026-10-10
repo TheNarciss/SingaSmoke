@@ -17,3 +17,8 @@ Package.resolved
 # data pipeline: downloads are regenerated; the inputs worth keeping live in data/sources
 data/raw/
 node_modules/
+
+# fastlane: screenshots are taken by CI, reports are local
+fastlane/screenshots/
+fastlane/report.xml
+fastlane/README.md

@@ -1,0 +1,25 @@
+Can I smoke here? SingaSmoke answers in seconds, anywhere in Singapore, and shows the way to the nearest place where smoking is allowed.
+
+Smoking is banned in many public places in Singapore, and fines start at S$200. The rules are clear, but on the street it is hard to tell where a no-smoking zone ends. SingaSmoke puts the official data on one map.
+
+WHERE YOU STAND
+• A status bar at the top of the map tells you, from your location, whether you are in a known no-smoking place: the Orchard Road No-Smoking Zone, parks and gardens, beaches, reservoirs, bus stops, playgrounds, fitness corners, sports courts, schools, hospitals, hawker centres, bus interchanges and multi-storey car parks.
+• Inside a zone, it shows the shortest way out.
+• Close to the edge of a zone, it says so: GPS is not precise enough to be sure.
+
+WHERE SMOKING IS ALLOWED
+• NEA's designated smoking areas, the yellow boxes of Orchard Road, with NEA's photo of each.
+• The smoking areas of Changi Airport.
+• Smoking corners mapped by OpenStreetMap contributors, marked as indicative.
+• Sorted by real walking time, with walking directions in the app, or in Apple Maps and Google Maps.
+
+LICENSED SHOPS
+• The Health Sciences Authority's public register of licensed tobacco retailers, by kind of shop, with opening hours where they are known.
+
+HOW FAR TO TRUST IT
+Every place shows its source: official (NEA, NParks, HSA, Changi Airport Group) or indicative (OpenStreetMap). No map shows building interiors, covered walkways, lift lobbies, void decks or the 5 m around entrances, where smoking is banned too. Always go by the signs on site.
+
+PRIVATE BY DESIGN
+No account, no ads, no tracking. Your location is used on your iPhone, only while the app is open, and never sent to the developer.
+
+SingaSmoke is an independent app, not affiliated with NEA, NParks, HSA, SLA or Changi Airport Group. In Singapore, tobacco is for adults aged 21 and over, and vapes and e-cigarettes are illegal, even to possess.
