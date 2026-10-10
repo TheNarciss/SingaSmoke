@@ -1,14 +1,17 @@
 name: iOS
 
-# Every push and pull request: the logic's unit tests, then the app compiled for the simulator.
+# Pull requests and pushes to the default branch: the logic's unit tests, then the app compiled
+# for the simulator. (Pushes to other branches are left to their pull request: one run, not two.)
 # On pull requests, screenshots of the app in the simulator land on the "screenshots" branch
-# and in the run summary, to review the interface without a Mac.
+# and in the run summary, to review the interface without a Mac: a quick set by default, every
+# screen when the pull request has the "full-screenshots" label.
 # A push to the default branch (or the "Run workflow" button) then archives, signs and uploads
 # the app to TestFlight, as soon as the signing secrets exist (docs/testflight.md). Until then the
 # TestFlight job says what is missing and stops without failing.
 
 on:
   push:
+    branches: [main]
     paths-ignore:
       - "**.md"
       - "docs/**"
@@ -66,6 +69,8 @@ jobs:
         if: github.event_name == 'pull_request'
         continue-on-error: true
         timeout-minutes: 15
+        env:
+          SHOT_SET: ${{ contains(github.event.pull_request.labels.*.name, 'full-screenshots') && 'full' || 'quick' }}
         run: scripts/ci-screenshots.sh build/Build/Products/Debug-iphonesimulator/SingaSmoke.app "$RUNNER_TEMP/shots"
 
       - name: Publish the screenshots
