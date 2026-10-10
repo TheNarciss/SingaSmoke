@@ -4,6 +4,9 @@
 # simulator build (Debug: the -ui… launch arguments below only exist in debug builds).
 #
 #   scripts/ci-screenshots.sh path/to/SingaSmoke.app output-folder
+#
+# SHOT_SET=quick (default) takes the screens that change most; SHOT_SET=full takes every one.
+# SIM_UDID picks a simulator the workflow already booted.
 set -euo pipefail
 
 APP="${1:?path to SingaSmoke.app}"
@@ -11,14 +14,17 @@ OUT="${2:-screenshots}"
 BUNDLE_ID=uk.riskybusinesses.singasmoke
 mkdir -p "$OUT"
 
-# The newest iPhone "Pro" simulator (6.3", the size most people hold).
-UDID=$(xcrun simctl list devices available -j | python3 -c '
+# The newest iPhone "Pro" simulator (6.3", the size most people hold), unless one is booting already.
+UDID="${SIM_UDID:-}"
+if [ -z "$UDID" ]; then
+  UDID=$(xcrun simctl list devices available -j | python3 -c '
 import json, sys
 devices = json.load(sys.stdin)["devices"]
 phones = [(runtime, d) for runtime, ds in devices.items() if ".iOS-" in runtime
           for d in ds if d["name"].startswith("iPhone") and "Pro" in d["name"] and "Max" not in d["name"]]
 phones.sort(key=lambda p: [int(x) for x in p[0].rsplit("iOS-", 1)[1].split("-")])
 print(phones[-1][1]["udid"])')
+fi
 echo "Simulator: $UDID"
 
 xcrun simctl boot "$UDID" || true
@@ -60,25 +66,30 @@ appearance() {
   echo "Appearance: $(xcrun simctl ui "$UDID" appearance)"
 }
 
+SET="${SHOT_SET:-quick}"
+echo "Screenshot set: $SET"
+
+# The app waits for its data and the nearest places before opening a sheet (-ui… arguments),
+# so a few seconds are enough; the map tiles and walking routes come from the network.
 appearance light
-shoot 01-orchard "$ORCHARD" 15
-shoot 01b-orchard-status "$ORCHARD" 14 -uiExpandStatus YES
-shoot 02-botanic-gardens "$GARDENS" 12
-shoot 03-jurong-east "$JURONG" 12
-shoot 04-spot-sheet "$ORCHARD" 14 -uiOpenFirstSpot YES
-shoot 05-spot-list "$ORCHARD" 14 -uiShowList YES
-shoot 06-buy "$JURONG" 12 -uiMode buy
-shoot 06b-buy-list "$JURONG" 14 -uiMode buy -uiShowList YES
-shoot 07-guidance "$JURONG" 18 -uiGuideFirstSpot YES
-shoot 08-whole-island "$ABROAD" 12
-shoot 08b-district "$JURONG" 12 -uiSpanMeters 3000   # ~3 km wide, ~6.5 km tall
-shoot 09-about "$JURONG" 14 -uiShowInfo YES
-FIRST_LAUNCH=1 shoot 10-first-launch "$JURONG" 8
+shoot 01-orchard "$ORCHARD" 9
+[ "$SET" = full ] && shoot 01b-orchard-status "$ORCHARD" 9 -uiExpandStatus YES
+[ "$SET" = full ] && shoot 02-botanic-gardens "$GARDENS" 9
+[ "$SET" = full ] && shoot 03-jurong-east "$JURONG" 9
+shoot 04-spot-sheet "$ORCHARD" 10 -uiOpenFirstSpot YES
+shoot 05-spot-list "$ORCHARD" 10 -uiShowList YES
+shoot 06-buy "$JURONG" 9 -uiMode buy
+[ "$SET" = full ] && shoot 06b-buy-list "$JURONG" 10 -uiMode buy -uiShowList YES
+shoot 07-guidance "$JURONG" 13 -uiGuideFirstSpot YES
+shoot 08-whole-island "$ABROAD" 9
+[ "$SET" = full ] && shoot 08b-district "$JURONG" 9 -uiSpanMeters 3000   # ~3 km wide, ~6.5 km tall
+[ "$SET" = full ] && shoot 09-about "$JURONG" 10 -uiShowInfo YES
+[ "$SET" = full ] && FIRST_LAUNCH=1 shoot 10-first-launch "$JURONG" 6
 appearance dark
-shoot 11-orchard-dark "$ORCHARD" 14
-shoot 12-buy-dark "$JURONG" 12 -uiMode buy
-shoot 13-spot-sheet-dark "$JURONG" 14 -uiOpenFirstSpot YES
-shoot 14-guidance-dark "$ORCHARD" 18 -uiGuideFirstSpot YES
+shoot 11-orchard-dark "$ORCHARD" 9
+[ "$SET" = full ] && shoot 12-buy-dark "$JURONG" 9 -uiMode buy
+shoot 13-spot-sheet-dark "$JURONG" 10 -uiOpenFirstSpot YES
+[ "$SET" = full ] && shoot 14-guidance-dark "$ORCHARD" 13 -uiGuideFirstSpot YES
 
 # Lighter files for the review.
 sips -Z 1200 "$OUT"/*.png >/dev/null

@@ -157,7 +157,11 @@ struct HomeView: View {
         if defaults.bool(forKey: "uiExpandStatus") { statusExpanded = true }
         let wanted = ["uiOpenFirstSpot", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"].filter { defaults.bool(forKey: $0) }
         guard !wanted.isEmpty else { return }
-        try? await Task.sleep(for: .seconds(6))
+        // Wait for the data and the first location fix (at most 10 s), then let the sheet appear.
+        for _ in 0..<40 where model.nearestSpots.isEmpty {
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        try? await Task.sleep(for: .seconds(1))
         let first = model.nearestSpots.first?.item
         if wanted.contains("uiOpenFirstSpot"), let first { select(.spot(first)) }
         if wanted.contains("uiShowList") { detent = .medium }
