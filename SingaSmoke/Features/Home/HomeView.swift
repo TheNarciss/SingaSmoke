@@ -11,14 +11,14 @@ enum AppMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .smoke: return "Smoking areas"
-        case .buy: return "Where to buy"
+        case .buy: return "Licensed shops"
         }
     }
 
     var symbol: String {
         switch self {
         case .smoke: return "smoke.fill"
-        case .buy: return "bag.fill"
+        case .buy: return "checkmark.seal.fill"
         }
     }
 }
@@ -150,12 +150,13 @@ struct HomeView: View {
 
     #if DEBUG
     /// Launch arguments used by CI to capture screenshots: -uiMode buy, -uiExpandStatus YES,
-    /// -uiOpenFirstSpot YES, -uiOpenFirstShop YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
+    /// -uiOpenFirstSpot YES, -uiOpenOfficialSpot YES, -uiOpenFirstShop YES, -uiShowList YES, -uiGuideFirstSpot YES,
+    /// -uiShowInfo YES.
     private func applyScreenshotArguments() async {
         let defaults = UserDefaults.standard
         if defaults.string(forKey: "uiMode") == "buy" { mode = .buy }
         if defaults.bool(forKey: "uiExpandStatus") { statusExpanded = true }
-        let wanted = ["uiOpenFirstSpot", "uiOpenFirstShop", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"]
+        let wanted = ["uiOpenFirstSpot", "uiOpenOfficialSpot", "uiOpenFirstShop", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"]
             .filter { defaults.bool(forKey: $0) }
         guard !wanted.isEmpty else { return }
         // Wait for the data and the first location fix (at most 10 s), then let the sheet appear.
@@ -165,6 +166,11 @@ struct HomeView: View {
         try? await Task.sleep(for: .seconds(1))
         let first = model.nearestSpots.first?.item
         if wanted.contains("uiOpenFirstSpot"), let first { select(.spot(first)) }
+        // The nearest NEA yellow box or Changi area: official, with a photo for NEA.
+        if wanted.contains("uiOpenOfficialSpot"),
+           let official = model.nearestSpots.first(where: { $0.item.reliability == .official })?.item {
+            select(.spot(official))
+        }
         // The nearest shop whose hours are known, to show them.
         if wanted.contains("uiOpenFirstShop"),
            let shop = (model.nearestRetailers.first { $0.item.hours != nil } ?? model.nearestRetailers.first)?.item {
@@ -184,7 +190,7 @@ extension AppModel {
     }
 }
 
-/// Smoking areas / Where to buy, as two chips under the status bar.
+/// Smoking areas / Licensed shops, as two chips under the status bar.
 struct ModeChips: View {
     @Binding var mode: AppMode
 

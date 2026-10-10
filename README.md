@@ -7,7 +7,7 @@ App iPhone qui répond en quelques secondes à deux questions, partout à Singap
 
 Plus un mode **Buy** : les ~4 200 points de vente de tabac sous licence HSA, filtrables par type (convenience store, supermarket, minimart, petrol station, kopitiam, other). Le registre HSA n'a pas d'horaires : ceux d'environ 330 boutiques viennent d'OpenStreetMap (ouvert / ferme bientôt / fermé, et la semaine), et un bouton « Hours on Apple Maps » ouvre la fiche Apple Maps de n'importe quelle boutique, horaires à jour compris.
 
-Un seul écran, la carte d'abord, organisé comme Google Maps : fond de carte sobre, zones interdites en rouge, pastilles vertes pour les spots. En haut, une barre fine dit si on peut fumer ici (un tap pour le détail et la sortie de zone), avec deux puces Smoking areas / Where to buy. En bas, un panneau qu'on tire : replié, il ne montre que le spot le plus proche et son bouton Go ; tiré, toute la liste ; un tap sur un spot y affiche sa fiche. La carte reste utilisable en permanence, et la bouger replie tout.
+Un seul écran, la carte d'abord, organisé comme Google Maps : fond de carte sobre, zones interdites en rouge, pastilles vertes pour les spots. En haut, une barre fine dit si on peut fumer ici (un tap pour le détail et la sortie de zone), avec deux puces Smoking areas / Licensed shops. En bas, un panneau qu'on tire : replié, il ne montre que le spot le plus proche et son bouton Go ; tiré, toute la liste ; un tap sur un spot y affiche sa fiche. La carte reste utilisable en permanence, et la bouger replie tout.
 
 Pas de compte, pas de serveur, pas de clé API, aucun suivi. iPhone uniquement, iOS 17 minimum, interface en anglais, clair et sombre, VoiceOver et tailles de texte dynamiques.
 
