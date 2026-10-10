@@ -2,7 +2,7 @@
 // Safe to re-run: each file is replaced only after a successful download.
 //   node scripts/fetch.mjs            everything
 //   node scripts/fetch.mjs datagov    only data.gov.sg
-//   node scripts/fetch.mjs osm        only OpenStreetMap (or: zones, postcodes)
+//   node scripts/fetch.mjs osm        only OpenStreetMap (or: zones, postcodes, shops)
 //   node scripts/fetch.mjs changi     only the Changi Airport page
 import fs from 'node:fs';
 import path from 'node:path';
@@ -83,8 +83,18 @@ const POSTCODES = `[out:json][timeout:300];${SG}
 );
 out center tags;`;
 
+// Shops, petrol stations and coffee shops, for their opening hours: build.mjs matches them to
+// the HSA register (which has no hours) by distance and name.
+const SHOPS = `[out:json][timeout:300];${SG}
+(
+  nwr["shop"~"^(convenience|supermarket|kiosk|variety_store|general|newsagent|tobacco|department_store|wholesale|alcohol|beverages|chemist|gas|mall)$"](area.sg);
+  nwr["amenity"="fuel"](area.sg);
+  nwr["amenity"~"^(cafe|restaurant|food_court|fast_food|bar|pub)$"]["opening_hours"](area.sg);
+);
+out center tags;`;
+
 const part = name => want('osm') || only === name;
-if (part('zones') || part('postcodes')) {
+if (part('zones') || part('postcodes') || part('shops')) {
   log('overpass:');
   const save = (file, json) => {
     fs.writeFileSync(path.join(RAW, file), JSON.stringify(json));
@@ -116,6 +126,10 @@ if (part('zones') || part('postcodes')) {
   if (part('postcodes')) {
     await sleep(5_000);
     save('osm_postcodes.json', await overpass(POSTCODES, 'postcodes'));
+  }
+  if (part('shops')) {
+    await sleep(5_000);
+    save('osm_shops.json', await overpass(SHOPS, 'shops'));
   }
 }
 

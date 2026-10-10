@@ -319,9 +319,14 @@ public struct Retailer: Identifiable, Hashable, Sendable {
     public let validity: String?
     /// Building of the postal code: precise to the building, not to the shop.
     public let coordinate: Coordinate
+    /// From the OpenStreetMap shop matched to this licence, when there is one. `hours` is nil when the
+    /// text could not be read; `hoursText` keeps it as written.
+    public let hours: OpeningHours?
+    public let hoursText: String?
 
     public init(id: String, name: String, licensee: String?, address: String, postalCode: String,
-                category: RetailCategory, brand: String?, building: String?, validity: String?, coordinate: Coordinate) {
+                category: RetailCategory, brand: String?, building: String?, validity: String?, coordinate: Coordinate,
+                hoursText: String? = nil) {
         self.id = id
         self.name = name
         self.licensee = licensee
@@ -332,6 +337,8 @@ public struct Retailer: Identifiable, Hashable, Sendable {
         self.building = building
         self.validity = validity
         self.coordinate = coordinate
+        self.hoursText = hoursText
+        self.hours = hoursText.flatMap(OpeningHours.init)
     }
 }
 

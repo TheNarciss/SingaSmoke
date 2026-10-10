@@ -158,7 +158,7 @@ struct NearbyList: View {
 
     private func shopRow(_ place: RankedPlace<Retailer>, prominent: Bool) -> some View {
         NearbyRow(symbol: place.item.category.symbol, tint: place.item.category.color, title: place.item.name,
-                  walking: place.walking, caveat: nil, prominent: prominent,
+                  walking: place.walking, caveat: nil, opening: place.item.hours?.status(at: .now), prominent: prominent,
                   onOpen: { onSelect(.shop(place.item)) },
                   onGo: { onGo(GuidanceTarget(retailer: place.item)) })
     }
@@ -171,6 +171,8 @@ struct NearbyRow: View {
     let title: String
     let walking: WalkingDistance
     let caveat: String?
+    /// Shops with known hours: open, closing soon or closed, right now.
+    var opening: OpeningStatus?
     var prominent = false
     let onOpen: () -> Void
     let onGo: () -> Void
@@ -191,6 +193,9 @@ struct NearbyRow: View {
                             if let caveat {
                                 Text("· \(caveat)").foregroundStyle(Brand.warning)
                             }
+                            if let opening {
+                                Text("· \(Format.openingShort(opening))").foregroundStyle(opening.tint)
+                            }
                         }
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(.secondary)
@@ -202,7 +207,8 @@ struct NearbyRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel([title, Format.spokenWalking(walking), caveat].compactMap { $0 }.joined(separator: ", "))
+            .accessibilityLabel([title, Format.spokenWalking(walking), caveat, opening.map(Format.opening)]
+                .compactMap { $0 }.joined(separator: ", "))
             .accessibilityHint("Shows the details")
 
             Button(action: onGo) {

@@ -296,6 +296,65 @@ for (const [company, validity, address] of rows) {
   }));
 }
 
+/* ---- Opening hours ----
+   The HSA register has none. OpenStreetMap has them for some shops: a retailer takes the hours of
+   an OSM shop within 80 m whose name or brand shares its distinctive words. Generic words
+   ("store", "centre", "coffee shop"…) never count, so a "Bright Centre" does not inherit the hours
+   of the "Redhill Food Centre" next door. Hours that are only a comment ("varies by stall") are
+   left out. */
+
+const NOT_DISTINCTIVE = new Set(('pte ltd llp private limited the and co company trading enterprise enterprises store stores ' +
+  'mart minimart mini supermarket shop singapore sg blk no international services service station centre center food ' +
+  'court coffee kopitiam eating house restaurant cafe canteen market marketplace provision convenience express ' +
+  'branch outlet group holdings corporation corp mall plaza point').split(' '));
+function words(s) {
+  return new Set(String(s || '').toLowerCase()
+    .replace(/7[\s-]?eleven|seven[\s-]?eleven/g, '7eleven')
+    .replace(/\(.*?\)/g, ' ')
+    .match(/[a-z0-9]+/g)?.filter(w => w.length > 1 && !NOT_DISTINCTIVE.has(w)) ?? []);
+}
+const metres = (a, b) => Math.hypot((a[0] - b[0]) * 111_320, (a[1] - b[1]) * 111_320 * Math.cos(1.35 * Math.PI / 180));
+
+let withHours = 0;
+const shopsFile = path.join(RAW, 'osm_shops.json');
+if (fs.existsSync(shopsFile)) {
+  const cells = new Map();
+  const cell = (lat, lng) => `${Math.floor(lat / 0.001)}:${Math.floor(lng / 0.001)}`;
+  for (const e of raw('osm_shops.json').elements) {
+    const t = e.tags || {};
+    const hours = (t.opening_hours || '').trim();
+    if (!hours || !(/\d/.test(hours) || hours === '24/7')) continue;
+    const lat = e.lat ?? e.center?.lat, lng = e.lon ?? e.center?.lon;
+    if (lat == null || lng == null) continue;
+    const shop = { at: [lat, lng], words: words([t.name, t['name:en'], t.brand, t.operator].join(' ')), hours };
+    if (!shop.words.size) continue;
+    const key = cell(lat, lng);
+    if (!cells.has(key)) cells.set(key, []);
+    cells.get(key).push(shop);
+  }
+  for (const f of retailers) {
+    const [lng, lat] = f.geometry.coordinates;
+    const p = f.properties;
+    const own = words([p.name, p.licensee, p.brand].join(' '));
+    if (!own.size) continue;
+    let best = null;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const key = `${Math.floor(lat / 0.001) + dx}:${Math.floor(lng / 0.001) + dy}`;
+      for (const shop of cells.get(key) ?? []) {
+        const d = metres([lat, lng], shop.at);
+        if (d > 80) continue;
+        const shared = [...own].filter(w => shop.words.has(w)).length;
+        const score = shared / Math.min(own.size, shop.words.size);
+        if (shared && score >= 0.5 && (!best || score > best.score || (score === best.score && d < best.d))) best = { score, d, shop };
+      }
+    }
+    if (best) {
+      p.hours = best.shop.hours;
+      withHours++;
+    }
+  }
+}
+
 /* ======================= output ======================= */
 
 const byKey = (arr, f) => arr.reduce((acc, x) => ((acc[f(x)] = (acc[f(x)] || 0) + 1), acc), {});
@@ -338,3 +397,4 @@ emit('meta.json', meta);
 log(`  spots      ${JSON.stringify(meta.counts.spots)}`);
 log(`  zones      ${JSON.stringify(meta.counts.zones)}  (${droppedDuplicate} OSM duplicates of official data dropped)`);
 log(`  retailers  ${retailers.length} from ${rows.length} licence rows (no postal ${noPostal}, not geocoded ${noGeo})  ${JSON.stringify(meta.counts.retailers)}`);
+log(`  hours      ${withHours} retailers with opening hours from OpenStreetMap`);
