@@ -14,6 +14,8 @@ struct SingaMapView: UIViewRepresentable {
     var followsHeading = false
     /// Incremented by the parent to recentre on the user.
     var recenterToken = 0
+    /// Incremented by the parent to fit the whole route and its destination on screen (guidance).
+    var overviewToken = 0
     /// Height of the card covering the bottom of the map: Apple's logo and "Legal" link go above it.
     var attributionInset: CGFloat = 0
     var onSelectSpot: (SmokingSpot) -> Void = { _ in }
@@ -58,12 +60,11 @@ struct SingaMapView: UIViewRepresentable {
         map.setCameraBoundary(MKMapView.CameraBoundary(coordinateRegion: MKCoordinateRegion(
             center: Self.singapore.center, latitudinalMeters: 70_000, longitudinalMeters: 90_000)), animated: false)
         if followsHeading {
-            // Walking guidance stays at street level, whatever zoom the tracking mode would pick.
-            map.setCameraZoomRange(MKMapView.CameraZoomRange(minCenterCoordinateDistance: 150, maxCenterCoordinateDistance: 1_500),
-                                   animated: false)
+            // Walking guidance starts at street level (see `Coordinator.capZoom`).
+            Coordinator.capZoom(map)
             map.setUserTrackingMode(.followWithHeading, animated: false)
         } else {
-            map.setCameraZoomRange(MKMapView.CameraZoomRange(maxCenterCoordinateDistance: 120_000), animated: false)
+            Coordinator.uncapZoom(map)
         }
         return map
     }
@@ -89,7 +90,9 @@ struct SingaMapView: UIViewRepresentable {
         private var shownMarker: MarkerAnnotation?
         private var shownRoute: MKPolyline?
         private var recenterToken = 0
+        private var overviewToken = 0
         private var centeredOnUser = false
+        private var zoomCapRelease: Task<Void, Never>?
         private var zoneOverlays: [ZoneOverlay] = []
         private var zonesEnabled = false
         private var zoneSignature = 0
@@ -124,7 +127,15 @@ struct SingaMapView: UIViewRepresentable {
             }
             if parent.recenterToken != recenterToken {
                 recenterToken = parent.recenterToken
+                if parent.followsHeading {
+                    Self.capZoom(map)
+                    releaseZoomCap(map, after: 2.5)
+                }
                 map.setUserTrackingMode(parent.followsHeading ? .followWithHeading : .follow, animated: true)
+            }
+            if parent.overviewToken != overviewToken {
+                overviewToken = parent.overviewToken
+                showOverview(map)
             }
         }
 
@@ -217,6 +228,44 @@ struct SingaMapView: UIViewRepresentable {
             zoneOverlays = overlays
         }
 
+        // MARK: Guidance camera
+
+        /// MapKit's tracking mode alone picks a view several kilometres wide: guidance caps the zoom
+        /// while it zooms onto the user, then lifts the cap so the map can be zoomed out freely.
+        static func capZoom(_ map: MKMapView) {
+            map.setCameraZoomRange(MKMapView.CameraZoomRange(minCenterCoordinateDistance: 150, maxCenterCoordinateDistance: 1_500),
+                                   animated: false)
+        }
+
+        static func uncapZoom(_ map: MKMapView) {
+            map.setCameraZoomRange(MKMapView.CameraZoomRange(maxCenterCoordinateDistance: 120_000), animated: false)
+        }
+
+        private func releaseZoomCap(_ map: MKMapView, after delay: TimeInterval) {
+            zoomCapRelease?.cancel()
+            zoomCapRelease = Task { @MainActor [weak map] in
+                try? await Task.sleep(for: .seconds(delay))
+                guard !Task.isCancelled, let map else { return }
+                Self.uncapZoom(map)
+            }
+        }
+
+        /// The route, the user and the destination on one screen, clear of the guidance cards.
+        private func showOverview(_ map: MKMapView) {
+            zoomCapRelease?.cancel()
+            Self.uncapZoom(map)
+            var rect = parent.route?.boundingMapRect ?? .null
+            var points: [CLLocationCoordinate2D] = []
+            if let marker = parent.marker { points.append(marker.coordinate) }
+            if let user = map.userLocation.location { points.append(user.coordinate) }
+            for point in points {
+                rect = rect.union(MKMapRect(origin: MKMapPoint(point), size: MKMapSize(width: 0, height: 0)))
+            }
+            guard !rect.isNull else { return }
+            map.setUserTrackingMode(.none, animated: false)
+            map.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 190, left: 50, bottom: 260, right: 80), animated: true)
+        }
+
         // MARK: MKMapViewDelegate
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
@@ -225,9 +274,16 @@ struct SingaMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+            guard !centeredOnUser, let location = userLocation.location else { return }
+            if parent.followsHeading {
+                // Guidance: the tracking mode zooms onto the first fix within the street-level cap;
+                // once it has settled, the user can zoom out as far as they like.
+                centeredOnUser = true
+                releaseZoomCap(mapView, after: 2.5)
+                return
+            }
             // First fix in Singapore: zoom onto the user, once, at street level.
-            guard !centeredOnUser, !parent.followsHeading, let location = userLocation.location,
-                  Geo.singapore.contains(Coordinate(location.coordinate)) else { return }
+            guard Geo.singapore.contains(Coordinate(location.coordinate)) else { return }
             centeredOnUser = true
             var span: CLLocationDistance = 750
             #if DEBUG

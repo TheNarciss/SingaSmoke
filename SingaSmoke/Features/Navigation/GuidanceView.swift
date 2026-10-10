@@ -38,6 +38,7 @@ struct GuidanceView: View {
     @State private var failed = false
     @State private var lastRequest = Date.distantPast
     @State private var recenter = 0
+    @State private var overview = 0
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -47,6 +48,7 @@ struct GuidanceView: View {
                 route: route?.polyline,
                 followsHeading: true,
                 recenterToken: recenter,
+                overviewToken: overview,
                 attributionInset: 172
             )
             .ignoresSafeArea()
@@ -56,7 +58,11 @@ struct GuidanceView: View {
                 Spacer(minLength: 0)
                 HStack {
                     Spacer()
-                    FloatingButton(symbol: "location.north.line.fill", label: "Centre on my location") { recenter += 1 }
+                    VStack(spacing: 12) {
+                        FloatingButton(symbol: "point.topleft.down.to.point.bottomright.curvepath",
+                                       label: "Show the whole route") { overview += 1 }
+                        FloatingButton(symbol: "location.north.line.fill", label: "Follow my position") { recenter += 1 }
+                    }
                 }
                 bottomCard
             }
@@ -64,6 +70,14 @@ struct GuidanceView: View {
             .padding(.bottom, 8)
         }
         .task { await computeRoute(force: true) }
+        #if DEBUG
+        .task {
+            // CI screenshots: -uiGuideOverview YES shows the whole route once it is known.
+            guard UserDefaults.standard.bool(forKey: "uiGuideOverview") else { return }
+            try? await Task.sleep(for: .seconds(5))
+            overview += 1
+        }
+        #endif
         .onChange(of: model.location.fix) { _, _ in
             Task { await followUser() }
         }

@@ -78,6 +78,7 @@ shoot 05-spot-list "$ORCHARD" 10 -uiShowList YES
 shoot 06-buy "$JURONG" 9 -uiMode buy
 [ "$SET" = full ] && shoot 06b-buy-list "$JURONG" 10 -uiMode buy -uiShowList YES
 shoot 07-guidance "$JURONG" 13 -uiGuideFirstSpot YES
+shoot 07b-guidance-overview "$JURONG" 16 -uiGuideFirstSpot YES -uiGuideOverview YES
 shoot 08-whole-island "$ABROAD" 9
 [ "$SET" = full ] && shoot 08b-district "$JURONG" 9 -uiSpanMeters 3000   # ~3 km wide, ~6.5 km tall
 [ "$SET" = full ] && shoot 09-about "$JURONG" 10 -uiShowInfo YES
