@@ -1,0 +1,9 @@
+SingaSmoke helps people in Singapore comply with the country's smoking laws. From the user's location it tells them whether they are in a no-smoking place (the Orchard Road No-Smoking Zone, parks, bus stops, playgrounds, schools, hospitals, hawker centres and more), shows the way out of a zone, and lists the nearest designated smoking areas.
+
+All the data is public: NEA's Designated Smoking Areas and No-Smoking Zones, NParks no-smoking locations and HSA's public register of licensed tobacco retailers (data.gov.sg, Singapore Open Data Licence), the smoking areas published by Changi Airport Group, and OpenStreetMap. Each place shows its source.
+
+The app does not sell, advertise or promote tobacco: no products, prices, offers or purchase links. The "Licensed shops" mode reproduces the government register of licensed retailers, with opening hours where known. The app states the fines, that tobacco is for adults aged 21 and over in Singapore, and that vapes are illegal there. It is rated 18+.
+
+No account, no ads, no tracking. Location is used on the device, only while the app is open.
+
+Testing outside Singapore: the app opens on a map of Singapore and reads "Outside Singapore"; everything else works from the centre of the map (tap a green marker, pull up the bottom sheet). To see the main screen as in Singapore, simulate a location such as 1.3040, 103.8324 (Orchard Road, inside the no-smoking zone) or 1.3138, 103.8159 (Singapore Botanic Gardens, a smoke-free park).

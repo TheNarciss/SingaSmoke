@@ -5,6 +5,8 @@ name: App Store listing
 # branch, for review. On a pull request that touches them, that is all. On the default branch, the
 # text and the screenshots then go to App Store Connect, version 1.0, with the API key TestFlight
 # already uses. Nothing here selects a build or submits for review: that is done in App Store Connect.
+# fastlane/metadata/review_information holds the notes for App Review only: the contact details
+# (name, phone, email) are filled in App Store Connect, not kept in this public repository.
 
 on:
   push:
