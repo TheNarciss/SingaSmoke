@@ -11,6 +11,8 @@ enum SelectedPlace: Hashable {
 /// everything nearby; a place's details when one is picked.
 struct HomeSheet: View {
     let mode: AppMode
+    /// The sheet is at its smallest: only the nearest place shows.
+    let folded: Bool
     let selection: SelectedPlace?
     let onSelect: (SelectedPlace) -> Void
     let onClose: () -> Void
@@ -25,7 +27,7 @@ struct HomeSheet: View {
             RetailerDetailView(retailer: shop, onGo: { onGo(GuidanceTarget(retailer: shop)) }, onClose: onClose)
                 .id(shop.id)
         case nil:
-            NearbyList(mode: mode, onSelect: onSelect, onGo: onGo)
+            NearbyList(mode: mode, folded: folded, onSelect: onSelect, onGo: onGo)
         }
     }
 }
@@ -34,6 +36,7 @@ struct HomeSheet: View {
 struct NearbyList: View {
     @Environment(AppModel.self) private var model
     let mode: AppMode
+    let folded: Bool
     let onSelect: (SelectedPlace) -> Void
     let onGo: (GuidanceTarget) -> Void
 
@@ -66,6 +69,16 @@ struct NearbyList: View {
             LookingAround()
         }
 
+        Group {
+            smokeMore(places)
+        }
+        .opacity(folded ? 0 : 1)
+        .accessibilityHidden(folded)
+        .animation(.easeOut(duration: 0.2), value: folded)
+    }
+
+    @ViewBuilder
+    private func smokeMore(_ places: [RankedPlace<SmokingSpot>]) -> some View {
         HStack {
             Text("More nearby")
                 .font(.headline)
@@ -114,6 +127,16 @@ struct NearbyList: View {
             LookingAround()
         }
 
+        Group {
+            buyMore
+        }
+        .opacity(folded ? 0 : 1)
+        .accessibilityHidden(folded)
+        .animation(.easeOut(duration: 0.2), value: folded)
+    }
+
+    @ViewBuilder
+    private var buyMore: some View {
         Text("Kinds of shop")
             .font(.headline)
             .padding(.top, 22)

@@ -26,8 +26,8 @@ enum AppMode: String, CaseIterable, Identifiable {
 /// One screen laid out like a maps app: the map everywhere, a slim status bar and two chips on top,
 /// a bottom sheet that stays folded on the nearest place until it is pulled up or a place is picked.
 struct HomeView: View {
-    /// Folded sheet: the nearest place and its Go button, nothing more.
-    static let folded = PresentationDetent.height(112)
+    /// Folded sheet: the nearest place and its Go button, nothing more (plus the home indicator's area).
+    static let folded = PresentationDetent.height(92)
 
     @Environment(AppModel.self) private var model
     @State private var mode: AppMode = .smoke
@@ -86,7 +86,7 @@ struct HomeView: View {
             if !prohibited { showExit = false }
         }
         .sheet(isPresented: .constant(true)) {
-            HomeSheet(mode: mode, selection: selection,
+            HomeSheet(mode: mode, folded: detent == Self.folded, selection: selection,
                       onSelect: select,
                       onClose: {
                           selection = nil
