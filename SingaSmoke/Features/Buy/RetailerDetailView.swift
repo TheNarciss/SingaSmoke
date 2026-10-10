@@ -34,6 +34,8 @@ struct RetailerDetailView: View {
                     if let onClose { CloseButton(action: onClose) }
                 }
 
+                ShopHoursBlock(retailer: retailer)
+
                 InfoBlock(symbol: "mappin.and.ellipse", title: retailer.building ?? "Address",
                           text: "\(retailer.address)\n\nLocated to the building of its postal code: in a mall, look for the shop on site.")
 

@@ -91,6 +91,7 @@ struct RetailerProperties: Decodable {
     let brand: String?
     let building: String?
     let validity: String?
+    let hours: String?
 }
 
 // MARK: - Decoding into the model
@@ -145,7 +146,7 @@ enum GeoJSONDecoding {
             return Retailer(
                 id: f.id, name: p.name, licensee: p.licensee, address: p.address, postalCode: p.postal,
                 category: RetailCategory(rawValue: p.category) ?? .other, brand: p.brand,
-                building: p.building, validity: p.validity, coordinate: coordinate
+                building: p.building, validity: p.validity, coordinate: coordinate, hoursText: p.hours
             )
         }
     }

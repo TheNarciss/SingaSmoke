@@ -45,6 +45,42 @@ public enum Format {
         return "\(distanceText), \(minutes) minute\(minutes > 1 ? "s" : "") on foot\(w.isEstimate ? ", estimated" : "")"
     }
 
+    /// Minutes since midnight as "07:30"; past midnight wraps ("02:00"), midnight is "00:00".
+    public static func time(_ minutes: Int) -> String {
+        let m = ((minutes % 1440) + 1440) % 1440
+        let hours = m / 60, rest = m % 60
+        return "\(hours < 10 ? "0" : "")\(hours):\(rest < 10 ? "0" : "")\(rest)"
+    }
+
+    /// "Open 24 hours", "Open · closes 23:00", "Closes soon · 22:30", "Closed · opens 07:00",
+    /// "Closed · opens tomorrow 07:00", "Closed · opens Mon 07:00".
+    public static func opening(_ status: OpeningStatus) -> String {
+        switch status {
+        case .alwaysOpen:
+            return "Open 24 hours"
+        case .open(let left, let closing):
+            if left >= 1440 { return "Open 24 hours today" }
+            return left <= 30 ? "Closes soon · \(time(closing))" : "Open · closes \(time(closing))"
+        case .closed(_, let opening, let daysAhead, let weekday):
+            switch daysAhead {
+            case 0: return "Closed · opens \(time(opening))"
+            case 1: return "Closed · opens tomorrow \(time(opening))"
+            default: return "Closed · opens \(OpeningHours.dayNames[weekday]) \(time(opening))"
+            }
+        case .closedAllWeek:
+            return "Closed"
+        }
+    }
+
+    /// One word for a list row: "Open", "Closes soon", "Closed".
+    public static func openingShort(_ status: OpeningStatus) -> String {
+        switch status {
+        case .alwaysOpen: return "Open 24h"
+        case .open(let left, _): return left <= 30 ? "Closes soon" : "Open"
+        case .closed, .closedAllWeek: return "Closed"
+        }
+    }
+
     private static let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
     /// "2026-09-19" -> "19 Sep 2026".

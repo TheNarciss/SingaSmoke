@@ -96,6 +96,15 @@ final class BundledDataTests: XCTestCase {
         XCTAssertTrue(d.retailers.allSatisfy { Geo.singapore.contains($0.coordinate) })
     }
 
+    func testBundledOpeningHoursAreReadable() throws {
+        let d = try data()
+        let listed = d.retailers.filter { $0.hoursText != nil }
+        XCTAssertGreaterThanOrEqual(listed.count, 150, "OpenStreetMap hours matched to the HSA register")
+        let unreadable = listed.filter { $0.hours == nil }.map { $0.hoursText ?? "" }
+        XCTAssertTrue(unreadable.isEmpty, "hours the app cannot read: \(Set(unreadable))")
+        XCTAssertTrue(listed.contains { $0.hours?.isAlwaysOpen == true })
+    }
+
     func testEveryRetailerCategoryIsRepresented() throws {
         let d = try data()
         let present = Set(d.retailers.map(\.category))

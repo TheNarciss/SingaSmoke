@@ -53,6 +53,7 @@ shoot() {
 ORCHARD=1.30400,103.83240   # Orchard Road: no-smoking zone, NEA yellow boxes around
 GARDENS=1.31380,103.81590   # Singapore Botanic Gardens: smoke-free park
 JURONG=1.33330,103.74220    # Jurong East: ordinary streets, bus stops, shops
+RAFFLES=1.27858,103.85010   # Raffles Place: a 7-Eleven with weekday and Sunday hours
 ABROAD=3.13900,101.68690    # Kuala Lumpur: outside Singapore, the map stays on the whole island
 
 # The appearance switch can take a moment to reach running services: wait, then check it.
@@ -76,7 +77,8 @@ shoot 01-orchard "$ORCHARD" 9
 shoot 04-spot-sheet "$ORCHARD" 10 -uiOpenFirstSpot YES
 shoot 05-spot-list "$ORCHARD" 10 -uiShowList YES
 shoot 06-buy "$JURONG" 9 -uiMode buy
-[ "$SET" = full ] && shoot 06b-buy-list "$JURONG" 10 -uiMode buy -uiShowList YES
+shoot 06c-shop-hours "$RAFFLES" 10 -uiMode buy -uiOpenFirstShop YES
+shoot 06b-buy-list "$RAFFLES" 10 -uiMode buy -uiShowList YES
 shoot 07-guidance "$JURONG" 13 -uiGuideFirstSpot YES
 shoot 07b-guidance-overview "$JURONG" 16 -uiGuideFirstSpot YES -uiGuideOverview YES
 shoot 08-whole-island "$ABROAD" 9

@@ -150,12 +150,13 @@ struct HomeView: View {
 
     #if DEBUG
     /// Launch arguments used by CI to capture screenshots: -uiMode buy, -uiExpandStatus YES,
-    /// -uiOpenFirstSpot YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
+    /// -uiOpenFirstSpot YES, -uiOpenFirstShop YES, -uiShowList YES, -uiGuideFirstSpot YES, -uiShowInfo YES.
     private func applyScreenshotArguments() async {
         let defaults = UserDefaults.standard
         if defaults.string(forKey: "uiMode") == "buy" { mode = .buy }
         if defaults.bool(forKey: "uiExpandStatus") { statusExpanded = true }
-        let wanted = ["uiOpenFirstSpot", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"].filter { defaults.bool(forKey: $0) }
+        let wanted = ["uiOpenFirstSpot", "uiOpenFirstShop", "uiShowList", "uiGuideFirstSpot", "uiShowInfo"]
+            .filter { defaults.bool(forKey: $0) }
         guard !wanted.isEmpty else { return }
         // Wait for the data and the first location fix (at most 10 s), then let the sheet appear.
         for _ in 0..<40 where model.nearestSpots.isEmpty {
@@ -164,6 +165,11 @@ struct HomeView: View {
         try? await Task.sleep(for: .seconds(1))
         let first = model.nearestSpots.first?.item
         if wanted.contains("uiOpenFirstSpot"), let first { select(.spot(first)) }
+        // The nearest shop whose hours are known, to show them.
+        if wanted.contains("uiOpenFirstShop"),
+           let shop = (model.nearestRetailers.first { $0.item.hours != nil } ?? model.nearestRetailers.first)?.item {
+            select(.shop(shop))
+        }
         if wanted.contains("uiShowList") { detent = .medium }
         if wanted.contains("uiShowInfo") { showInfo = true }
         if wanted.contains("uiGuideFirstSpot"), let first { guidance = GuidanceTarget(spot: first) }

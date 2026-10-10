@@ -90,6 +90,7 @@ struct InfoView: View {
                         LabeledContent("Smoking spots", value: "\(data.spots.count)")
                         LabeledContent("No-smoking places", value: "\(data.zones.count)")
                         LabeledContent("Licensed retailers", value: "\(data.retailers.count)")
+                        LabeledContent("…with opening hours", value: "\(data.retailers.filter { $0.hours != nil }.count)")
                     }
                 }
 
