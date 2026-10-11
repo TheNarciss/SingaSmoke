@@ -1,10 +1,11 @@
 name: App Store listing
 
 # The App Store listing lives in fastlane/metadata (English, U.K.); its screenshots are taken in the
-# simulator by scripts/appstore-screenshots.sh and always published on the "appstore-screenshots"
-# branch, for review. On a pull request that touches them, that is all. On the default branch, the
-# text and the screenshots then go to App Store Connect, version 1.0, with the API key TestFlight
-# already uses. Nothing here selects a build or submits for review: that is done in App Store Connect.
+# simulator by scripts/appstore-screenshots.sh, on the 6.3" iPhone App Store Connect requires and on
+# the 6.9" one, and always published on the "appstore-screenshots" branch, for review. On a pull
+# request that touches them, that is all. On the default branch, the text and the screenshots then go
+# to App Store Connect, version 1.0, with the API key TestFlight already uses. Nothing here selects a
+# build or submits for review: that is done in App Store Connect.
 # fastlane/metadata/review_information holds the notes for App Review only: the contact details
 # (name, phone, email) are filled in App Store Connect, not kept in this public repository.
 
@@ -58,7 +59,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             | tail -n 40
 
-      - name: App Store screenshots (6.9-inch iPhone)
+      - name: App Store screenshots (6.3-inch and 6.9-inch iPhones)
         run: scripts/appstore-screenshots.sh build/Build/Products/Debug-iphonesimulator/SingaSmoke.app fastlane/screenshots/en-GB
 
       - name: Publish the screenshots for review
